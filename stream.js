@@ -68,6 +68,8 @@ exports = module.exports = function (local, get, append) {
       else if(isNotes(data)) {
         //go through and update all state, then process all effects
         for(var id in data) {
+          if(!remotes[id] && replicate(id))
+            remotes[id] state.initalize(local, data[id])
           if(remotes[id])
             remotes[id] = state.receiveNote(remotes[id], {id: id, seq: data[id})
         }
@@ -87,6 +89,21 @@ exports = module.exports = function (local, get, append) {
         remotes[msg.author] = effects(state.appendMessage(remotes[msg.author], msg))
     },
     //how to request the feeds to replicate?
+    //1. observable
+    //2. expose a function?
+
+    //what do I call it with? {<id>: received?} and received should be able to be negative
+    //incase they already connected to another.
+
+    //or default to replicate all of local?
+
+    //what will happen anyway? reload (from disk) vector of what feeds you received from
+    //this remote, since last time. then, initialize replication of feeds which have changed since then.
+    //if you are already replicating with another peer, request these feeds in non-sending mode.
+    //they may switch to sending mode, or you might.
+
+    //there needs to be a method to call, so that it's possible to request a new feed,
+    //say if you follow someone new during the connection.
   }
 }
 
