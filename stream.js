@@ -1,0 +1,105 @@
+var state = require('./state')
+var explain = require('explain-error')
+
+//local and remote are observables, containing maps {id:sequence}
+//if sequence is negative on remote then it means "up to here" but do not send.
+
+exports = module.exports = function (local, get, append) {
+
+  var remotes = {}
+  var queues = [] //the remotes, but sorted by who has the next message to send.
+
+  var actions = {
+    append: append,
+    get: function (note) {
+      get(note, function (err, msg) {
+        //this error should never happen
+        if(err) return console.error(explain(error, 'could not get message:'+JSON.stringify(note))
+        if(remotes[msg.author])
+          remotes[msg.author] = effects(state.retrivedMessage(remotes[msg.author], msg))
+      })
+    }
+  }
+
+  function read (abort, cb) {
+    //find the most recent queue and send it.
+    ;(function next () {
+      exports.sort(queue)
+      if(!queue.length) //nothing ready.
+        ready.once(next, false)
+      else if(isMessage(queue[0])) {
+        var msg = queue[0].ready
+        queue[0].ready = null
+        queue[0].state.effect = [{action: 'get', arg: {id: msg.author, seq: msg.sequence + 1}}]
+        cb(null, msg)
+      } else if(isNote(queue[0]) {
+        //lump together all available notes into a single {<id>: <seq>,...} object
+        var notes = {}
+        for(var i = 0; isNote(queue[i].ready); i++) {
+          notes[queue[i].ready.id] = queue[i].ready.seq
+          queue[i].ready = null
+        }
+        //we don't need to queue an effect, because notes are always triggered by other events.
+        cb(null, notes)
+      }
+    })()
+  }
+
+  function effects (state) {
+    if(!state.effect || !state.effect.length) return
+    var effects = state.effect
+    state.effect = []
+    while(effects.length) {
+      var effect = effects.shift()
+      actions[effect.action](effect.arg)
+    }
+    if(state.ready) ready(state)
+  }
+
+  //a message was received or created, in real time
+
+  return {
+    source: read,
+    sink: pull.drain(function (data) {
+      if(isMessage(data) && remotes[data.author]) {
+        var msg = data
+        remotes[msg.author] = effects(state.receiveMessage(remotes[msg.author], msg))
+      }
+      else if(isNotes(data)) {
+        //go through and update all state, then process all effects
+        for(var id in data) {
+          if(remotes[id])
+            remotes[id] = state.receiveNote(remotes[id], {id: id, seq: data[id})
+        }
+        for(var id in data)
+          remotes[id] = effects(remotes[id])
+      }
+    },
+    //must call append when a message is added in real time (not for old messages though)
+    //maybe pass in a stream instead?
+    append: function (msg) {
+      //it can be greater or equal,
+      //because more than one message could have been processed before append is called.
+      if(local[msg.author] < msg.sequence)
+        throw new Error('local sequence is expected to be at greater or equal to '+msg.sequence)
+
+      if(remotes[msg.author])
+        remotes[msg.author] = effects(state.appendMessage(remotes[msg.author], msg))
+    },
+    //how to request the feeds to replicate?
+  }
+}
+
+//this should be replaced with a heap,
+//but i'll look for a good heap implementation later
+//this should be enough for now.
+exports.sort = function (queue) {
+  return queue.sort(function (a, b) {
+    if(!a.value && !b.value) return 0
+    if(a.value && !b.value) return -1
+    else if(b.value && !a.value) return 1
+    else return a.value.timestamp - b.value.timestamp
+    return 0
+  })
+}
+

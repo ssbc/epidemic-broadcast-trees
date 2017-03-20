@@ -1,0 +1,72 @@
+  OUR_SEQ, THEIR_SEQ, THEM_RECV, US_RECV
+
+  onRecieveValidMessage: //after we have processed the message.
+    if(OUR_SEQ > THEIR_SEQ && THEM_RECV)
+      send(msg)
+    else if(OUR_SEQ < THEIR_SEQ && US_RECV)
+      send({id: msg.author, seq: msg.sequence}) //OPTIONAL, don't have to do this every time
+  onReceiveMessage:
+    if(OUR_SEQ > msg.sequence)
+      send({id: msg.author, seq: - OUR_SEQ}) //tell them to stop sending.
+                                             //else, validate the message and continue.
+  onRecieveNote:
+    if(note.seq < 0 && THEM_RECV) {
+      THEM_RECV = false //they have asked us to stop sending this feed to them.
+    }
+    if(Math.abs(note.seq) > OUR_SEQ) {
+      US_RECV = true
+      send({id: note.id, seq: OUR_SEQ})
+    }
+
+  onBeginReplication:
+    for(var id in feeds)
+      send({id: id, seq: feed[id].seq})
+
+  //okay I feel satisfied that is the correct logic
+  //but how do I make this FSM pull?
+
+  //I know, functional style state
+
+  //For each peer, for each feed keep the state of:
+
+  remote = {requested: Seq, sent: Seq, ready: msg|null, sending: bool, receiving: bool} //sending to, receiving from
+
+  //also keep a map of local = {id: seq}
+  //then I think all events can be handled sync
+
+  READ:
+    if ready!= null, the puller takes `ready` then sets it to `null`
+    if ready was a msg, this also triggers retriving the next msg, if this feed.sent < local[id]
+    if ready was a note, it's just sent without triggering anything.
+
+  RECEIVE_MSG: //receive a message from this peer, before it's validated.
+    remote.requested = msg.sequence //always remember they are up to this sequence.
+
+    if(msg.seq <= local[msg.author]) //if we already know about this message
+      if(remote.receiving) {
+        remote.ready = {id, seq: - local[id]} //tell them we do not need this feed.
+        remote.receiving = false
+      }
+      if(!remote.receiving) {
+        we have asked them to stop sending, but they havn't got the note yet.
+        anyway, remember they know this sequence.
+        remote.requested = msg.sequence
+      }
+      else if(remote.sending) {
+        this is an error, they should never send to us if we are sending.
+        if this ever happens it's a programmer error. maybe should tell them to top sending?
+        you might receive a 
+      }
+    RECEIVE_NOTE:
+      if(remote.sending) {
+        if(note.seq < 0) //stop sending
+          remote.sending = false, remote.ready = null, remote.requested = abs(note.seq)
+      }
+      else if(!remote.receiving) {
+        if(abs(note.seq) > local[id]) //if this is the fastest peer for this feed, ask them to send.
+          
+
+      }
+    
+  
+
