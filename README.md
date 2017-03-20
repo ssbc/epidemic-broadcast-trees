@@ -1,47 +1,18 @@
 # epidemic-broadcast-trees
 
-## Broadcast
-```
-vars = have_clock, request_clock
+This is an implementation of the plumtree Epidemic Broadcast Trees paper.
+It's a algorithm that combines the robustness of a flooding epidemic gossip broadcast,
+with the efficiency of a tree model. It's intended for implementing realtime protocols
+(such as chat, scuttlebutt, also radio/video) over networks with random topology -
+or networks where otherwise peers may be unable to all connect to each other or to a central hub.
 
-READY:
-  request: (id, seq) {
-    if(have_clock[id] >= seq)
-      get(id, seq) //GETTING => got
-  },
-GETTING:
-  got: (msg) {
-    if(request_clock[msg.key] + 1 == msg.value.sequence) {
-      request_clock[msg.key] ++
-      send(msg)
-      if(request_clock[msg.key] < have_clock[id]) get(id, msg.value.sequence + 1) //GETTING -> got
-    }
-    //shift to real time
-  }
-  live: (msg) { // received a message in realtime, send if that is what they want.
-    if(request_clock[msg.key] + 1 == msg.value.sequence) {
-      request_clock[msg.key] ++
-      send(msg)
-    }
-  }
-```
-
-READ:
-  if(new connection)
-    reply: wants
-
-SET_REMOTE_HAS:
-  for(id in local)
-    if(local[id] > remote[id])
-      attach_queue(id, local[id])
-
-LIVE_LOCAL:
-  if(remote[msg.author] < msg.sequence)
-    q
+Although the primary motivation for this module is to use it in secure scuttlebutt,
+it's intended to be decoupled sufficiently to use for other applications.
 
 ## License
 
 MIT
+
 
 
 
