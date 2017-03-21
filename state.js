@@ -1,11 +1,18 @@
+var u = require('./util')
+var isMessage = u.isMessage
+var isNote = u.isNote
+
+//okay just pretending to be purely functional
+//(but if you have good functional disipline, you can mutate)
 function clone (state) { return state }
 
-exports.init = function (local) {
+//actually, want to be able to initialize this in receive mode or not.
+exports.init = function (local, seq) {
   return {
     local: local,
-    sending: false,
+    sending: seq > 0,
     receiving: false,
-    sent: 0, received: 0,
+    sent: Math.abs(seq), received: Math.abs(seq),
     ready: null,
     effect: []
   }
@@ -16,7 +23,8 @@ exports.read = function (state) {
   if(!state.ready) return [null, state]
   var _ready = state.ready
   state.ready =  null
-  if(isMessage(_ready) state.sent = _ready.sequence
+  if(isMessage(_ready))
+    state.sent = _ready.sequence
   return [_ready, state]
 }
 
@@ -34,7 +42,7 @@ exports.receiveMessage = function (state, msg) {
       _state.receiving = false
     }
     else if(state.local[msg.author] + 1 == msg.sequence)
-      _state.effect = [{action: 'append', arg: msg}]
+      _state.effect = {action: 'append', value: msg}
       ; //SIDE EFFECT: ready to validate
     else
       ; //ignore
@@ -63,7 +71,7 @@ exports.receiveNote = function (state, note) {
     //we where about to send a message, but they asked for an older one (weird)
     if(state.ready && state.ready.sequence <= note.seq) {
       _state.ready = null
-      _state.effect = [{action: 'get', arg: note}]
+      _state.effect = {action: 'get', value: note}
       //SIDE EFFECT: retrive next message
     }
   }
@@ -74,18 +82,19 @@ exports.receiveNote = function (state, note) {
   else if(!state.receiving) {
     if(state.local[note.id] < Math.abs(note.seq)) {
       _state.receiving = true
-      _state.ready = {id: note.id, state.local[note.id]} //request this feed from our current value.
+      _state.ready = {id: note.id, seq: state.local[note.id]} //request this feed from our current value.
     }
     else if(note.seq > 0) {
       _state.sending = true
       if(state.local[note.id] > note.seq) {
         if(!isMessage(state.ready) || state.ready.sequence !== note.sequence) {
           _state.ready = null
-          _state.effect = [{action: 'get', arg: note}]
+          _state.effect = {action: 'get', value: {id: note.id, seq: note.seq+1}}
         }
       }
     }
   }
+  return _state
 }
 
 //we have either written a new message ourselves,
@@ -103,7 +112,11 @@ exports.appendMessage = function (state, msg) {
 
 //have retrived an requested message
 exports.retriveMessage = function (state, msg) {
-
+  var _state = clone(state)
+  if(state.sending && state.received + 1 == msg.sequence)
+    _state.ready = msg
+  //if we are not in sending state, just stop.
+  //otherwise, the next retrival will be triggered by READ
+  return _state
 }
-
 

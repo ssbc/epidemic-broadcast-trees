@@ -1,10 +1,15 @@
+'use strict'
 var state = require('./state')
 var explain = require('explain-error')
+var u = require('./util')
+
+var isMessage = u.isMessage
+var isNote = u.isNote
 
 //local and remote are observables, containing maps {id:sequence}
 //if sequence is negative on remote then it means "up to here" but do not send.
 
-exports = module.exports = function (local, get, append) {
+exports = module.exports = function (local, get, append, cb) {
 
   var remotes = {}
   var queues = [] //the remotes, but sorted by who has the next message to send.
@@ -14,7 +19,7 @@ exports = module.exports = function (local, get, append) {
     get: function (note) {
       get(note, function (err, msg) {
         //this error should never happen
-        if(err) return console.error(explain(error, 'could not get message:'+JSON.stringify(note))
+        if(err) return console.error(explain(error, 'could not get message:'+JSON.stringify(note)))
         if(remotes[msg.author])
           remotes[msg.author] = effects(state.retrivedMessage(remotes[msg.author], msg))
       })
@@ -24,15 +29,17 @@ exports = module.exports = function (local, get, append) {
   function read (abort, cb) {
     //find the most recent queue and send it.
     ;(function next () {
-      exports.sort(queue)
+      u.sort(queue)
+
       if(!queue.length) //nothing ready.
-        ready.once(next, false)
+        return ready.once(next, false)
       else if(isMessage(queue[0])) {
         var msg = queue[0].ready
         queue[0].ready = null
         queue[0].state.effect = [{action: 'get', arg: {id: msg.author, seq: msg.sequence + 1}}]
         cb(null, msg)
-      } else if(isNote(queue[0]) {
+      }
+      else if(isNote(queue[0])) {
         //lump together all available notes into a single {<id>: <seq>,...} object
         var notes = {}
         for(var i = 0; isNote(queue[i].ready); i++) {
@@ -42,6 +49,8 @@ exports = module.exports = function (local, get, append) {
         //we don't need to queue an effect, because notes are always triggered by other events.
         cb(null, notes)
       }
+      else
+        ready.once(next, false)
     })()
   }
 
@@ -51,7 +60,7 @@ exports = module.exports = function (local, get, append) {
     state.effect = []
     while(effects.length) {
       var effect = effects.shift()
-      actions[effect.action](effect.arg)
+      actions[effect.action](effect.value)
     }
     if(state.ready) ready(state)
   }
@@ -69,14 +78,14 @@ exports = module.exports = function (local, get, append) {
         //go through and update all state, then process all effects
         for(var id in data) {
           if(!remotes[id] && replicate(id))
-            remotes[id] state.initalize(local, data[id])
+            remotes[id] = state.initalize(local, data[id])
           if(remotes[id])
-            remotes[id] = state.receiveNote(remotes[id], {id: id, seq: data[id})
+            remotes[id] = state.receiveNote(remotes[id], {id: id, seq: data[id]})
         }
         for(var id in data)
           remotes[id] = effects(remotes[id])
       }
-    },
+    }, cb),
     //must call append when a message is added in real time (not for old messages though)
     //maybe pass in a stream instead?
     append: function (msg) {
@@ -105,18 +114,5 @@ exports = module.exports = function (local, get, append) {
     //there needs to be a method to call, so that it's possible to request a new feed,
     //say if you follow someone new during the connection.
   }
-}
-
-//this should be replaced with a heap,
-//but i'll look for a good heap implementation later
-//this should be enough for now.
-exports.sort = function (queue) {
-  return queue.sort(function (a, b) {
-    if(!a.value && !b.value) return 0
-    if(a.value && !b.value) return -1
-    else if(b.value && !a.value) return 1
-    else return a.value.timestamp - b.value.timestamp
-    return 0
-  })
 }
 
