@@ -53,47 +53,72 @@ exports.receiveMessage = function (state, msg) {
 
 exports.receiveNote = function (state, note) {
   var _state = clone(state)
-  _state.received = Math.max(Math.abs(note.seq), _state.has || 0)
-  if(state.sending) {
-    if(note.seq < 0) {
-      _state.sending = false
-      _state.ready = null
-    }
+  var seq = state.local[note.id]
+  var requested = note.seq > 0
+  var _seq = Math.abs(note.seq)
 
-    //they know about a message we don't yet, go into receiving mode
-    if(Math.abs(note.seq) > state.local[note.id] && !state.receiving) {
-      _state.receiving = true
-      _state.sending = false
-      //ready for next request.
-      _state.ready = {id: note.id, seq: state.local[note.id]}
-    }
+  _state.received = _seq
 
-    //we where about to send a message, but they asked for an older one (weird)
-    if(state.ready && state.ready.sequence <= note.seq) {
-      _state.ready = null
-      _state.effect = {action: 'get', value: note}
-      //SIDE EFFECT: retrive next message
-    }
+  if(!requested)
+    _state.sending = false
+  else
+    _state.sending = true
+  if(seq < _seq && !state.receiving) {
+    _state.receiving = true
+    _state.ready = {id: note.id, seq: seq}
   }
-  else if(state.recieving) {
-    //generally shouldn't happen but
-    //could if we have just switched to receiving but they didn't get the message yet
+  if(seq > _seq && requested) {
+    _state.effect = {action: 'get', value: {id: note.id, seq: _seq + 1}}
   }
-  else if(!state.receiving) {
-    if(state.local[note.id] < Math.abs(note.seq)) {
-      _state.receiving = true
-      _state.ready = {id: note.id, seq: state.local[note.id]} //request this feed from our current value.
-    }
-    else if(note.seq > 0) {
-      _state.sending = true
-      if(state.local[note.id] > note.seq) {
-        if(!isMessage(state.ready) || state.ready.sequence !== note.sequence) {
-          _state.ready = null
-          _state.effect = {action: 'get', value: {id: note.id, seq: note.seq+1}}
-        }
-      }
-    }
-  }
+
+  return _state
+
+//  _state.received = Math.max(Math.abs(note.seq), _state.has || 0)
+//  if(!state.sending)
+//    if(note.seq > 0) {
+//      _state.sending = true
+//    }
+//  if(state.sending) {
+//    if(note.seq < 0) {
+//      _state.sending = false
+//      _state.ready = null
+//    }
+//
+//    //they know about a message we don't yet, go into receiving mode
+//    if(Math.abs(note.seq) > state.local[note.id] && !state.receiving) {
+//      _state.receiving = true
+//      _state.sending = false
+//      //ready for next request.
+//      _state.ready = {id: note.id, seq: state.local[note.id]}
+//    }
+//
+//    //we where about to send a message, but they asked for an older one (weird)
+//    if(state.ready && state.ready.sequence <= note.seq) {
+//      _state.ready = null
+//      _state.effect = {action: 'get', value: note}
+//      //SIDE EFFECT: retrive next message
+//    }
+//  }
+//  else if(state.recieving) {
+//    //generally shouldn't happen but
+//    //could if we have just switched to receiving but they didn't get the message yet
+//  }
+//  else if(!state.receiving) {
+//    if(state.local[note.id] < Math.abs(note.seq)) {
+//      _state.receiving = true
+//      _state.ready = {id: note.id, seq: state.local[note.id]} //request this feed from our current value.
+//    }
+//    else if(note.seq > 0) {
+//      _state.sending = true
+//      if(state.local[note.id] > note.seq) {
+//        if(!isMessage(state.ready) || state.ready.sequence !== note.sequence) {
+//          _state.ready = null
+//          _state.effect = {action: 'get', value: {id: note.id, seq: note.seq+1}}
+//        }
+//      }
+//    }
+//  }
+//
   return _state
 }
 
@@ -119,4 +144,8 @@ exports.retriveMessage = function (state, msg) {
   //otherwise, the next retrival will be triggered by READ
   return _state
 }
+
+
+
+
 
