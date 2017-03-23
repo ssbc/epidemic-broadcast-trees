@@ -1,6 +1,6 @@
 var states = require('../state')
 var tape = require('tape')
-
+var u = require('../util')
 
 tape('receiveMessage 1', function (t) {
 
@@ -133,6 +133,43 @@ tape('receiveNote, remote requests unrequests message when we are not sending', 
 
 })
 
+//things that should be true, after receiving a note.
+function post_receiveNote (_state, state, note) {
+  //if negative turn off send
+  var seq = state.local[note.id]
+
+  if(note.seq < 0) {
+    t.equal(state.sending, false, 'disable sending mode')
+  }
+  if(note.seq > 0) {
+    //if positive, turn on send
+    t.equal(state.sending, true, 'enable sending')
+    //if behind us, get ready to send
+    //what if we where ALREADY get'ing something?
+    if(seq > note.seq)
+      t.deepEqual(state.effect, {action: 'get', value: {id: note.id, seq: note.seq + 1}}, 'retrive next message to send')
+  }
+
+  //we realize they are ahead. if we had something ready, it's out of date now.
+  if(seq < Math.abs(note.seq)) {
+    //if we WERE in sending mode, and hand something ready,
+    //but then receive a note that says they are ahead,
+    //then we should not send the thing we where going to send!
+    //either enter receiving mode, or unset the ready item.
+    if(!_state.receiving) {
+      t.ok(state.receiving, 'enter receiving state') //enter receiving state
+      t.deepEqual(state.ready, {id: note.id, seq: seq}, 'send note to receive')
+    }
+    //what happens here, if something was ALREADY ready?
+    else if(u.isMessage(_state.ready))
+      t.equal(state.ready, null)
+  }
+  else if(_state.ready)
+    t.deepEqual(state.ready, _state.ready)
+
+  t.equal(state.received, Math.abs(note.seq), 'requested seq is kept')
+}
+
 
 tape('receiveNote, with random seqs and signs', function (t) {
 
@@ -142,40 +179,17 @@ tape('receiveNote, with random seqs and signs', function (t) {
     local: local, sending: false, receiving: false
   }
 
-  function post (_state, state, note) {
-    //if negative turn off send
-    var seq = state.local[note.id]
-
-    if(note.seq < 0) {
-      t.equal(state.sending, false, 'disable sending mode')
-      //if positive, turn on send
-    }
-    if(note.seq > 0) {
-      t.equal(state.sending, true, 'enable sending')
-      //if behind us, get ready to send
-      //what if we where ALREADY get'ing something?
-      if(seq > note.seq)
-        t.deepEqual(state.effect, {action: 'get', value: {id: note.id, seq: note.seq + 1}}, 'retrive next message to send')
-    }
-
-    if(seq < Math.abs(note.seq) && !_state.receiving) {
-      t.ok(state.receiving, 'enter receiving state') //enter receiving state
-      //what happens here, if something was ALREADY ready?
-      t.deepEqual(state.ready, {id: note.id, seq: seq}, 'send note to receive')
-    }
-
-    t.equal(state.received, Math.abs(note.seq), 'requested seq is kept')
-  }
 
   for(var i = 0; i < 100; i++) {
 
     var state = {
-      local: local, sending: false, receiving: false
+      local: local, sending: Math.random()<0.5, receiving: Math.random()<0.5,
+      ready: Math.random() < 0.2 ? {author: 'alice', sequence: 5, content: 'hello'} : null
     }
     var _state = JSON.parse(JSON.stringify(state))
     var note = {id: 'alice', seq: ~~(Math.random()*20) - 10}
     state = states.receiveNote(state, note)
-    post(_state, state, note)
+    post_receiveNote(_state, state, note)
   }
 
   //What if something was ALREADY in ready, and a note is received?
@@ -184,5 +198,11 @@ tape('receiveNote, with random seqs and signs', function (t) {
 
   t.end()
 })
+
+
+
+
+
+
 
 
