@@ -63,6 +63,8 @@ exports.receiveNote = function (state, note) {
     _state.sending = false
   else
     _state.sending = true
+  if(isMessage(state.ready) && _seq > state.ready.sequence)
+      state.ready = null
   if(seq < _seq && !state.receiving) {
     _state.receiving = true
     _state.ready = {id: note.id, seq: seq}
