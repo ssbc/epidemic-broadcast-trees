@@ -1,3 +1,47 @@
+/*
+  sending:
+    +n+1
+      they are ahead, ask to receive.
+      this might happen on initial connections, if they think you might be further ahead.
+      they have asked us to send, but they'll probably change their mind. +send +receive
+    +n
+      we are in sync, and neither knows who is closer to the source.
+      since the actual receiver does not. +send
+    +n-1
+      they are behind us, get the next item for them. +send !get
+
+    -(n+1)
+      they are ahead of us, stop sending.
+      ask to receive from them (but they don't want anything from us) -send +receive
+    -n
+      stop sending, we know they are in sync, so no need to send notes. -send
+    -(n-1)
+      stop sending, but send notes sometimes. -send
+
+  receiving:
+    +n+1
+      they ask to receive from us, but we are not up to there.
+      *enable send* I guess, but don't expect to send. +send
+    +n
+      they ask to receive from us, but we are already in sync.
+      send a note to let the know we are in sync, if we havn't already.
+    +(n-1)
+      they ask to receive, but are behind us. +send
+
+    -(n+1)
+      expect them still to send to us, though. -send
+    -(n)
+      they just let us know we are in sync
+    -(n-1)
+      they are behind us, but are still getting messages faster than they would from us.
+      get ready to send a note about where we are up to.
+
+  if the absolute value is greater, and we are not already receiving, ask to receive.
+  else if positive, turn on send (and get ready if we have something)
+  else if negative, turn off send.
+*/
+
+
   OUR_SEQ, THEIR_SEQ, THEM_RECV, US_RECV
 
   onRecieveValidMessage: //after we have processed the message.
