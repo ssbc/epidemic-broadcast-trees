@@ -81,12 +81,24 @@ exports.receiveNote = function (state, note) {
 exports.appendMessage = function (state, msg) {
   //if this is the msg they need next, make
   var _state = clone(state)
-  if(state.sending && state.sent + 1 === msg.sequence)
-    _state.ready = msg
-  else if(!state.sending)
-    //how about some way to delay sending notes, for bandwidth?
-    //and to slow down upwards replication if you are datacapped.
-    _state.ready = {id: msg.author, seq: msg.sequence * -1}
+  if(state.sending) {
+    if(state.sent + 1 === msg.sequence && state.received < msg.sequence)
+      _state.ready = msg
+    else if(isNote(state.ready)) //this should only happen when it is the initial request
+      _state.ready = {id: msg.author, seq: msg.sequence}
+    else if(!isMessage(_state.ready))
+      _state.ready = null
+  }
+  else if(!state.sending) {
+    //unless we know they are up to this, send a note
+    if(msg.sequence > state.received)
+      _state.ready = {id: msg.author, seq: -msg.sequence}
+    else if(isNote(state.ready) && state.ready.seq > 0)
+      state.ready.seq = message.sequence
+    else
+      state.ready = null
+  }
+  return state
 }
 
 //have retrived an requested message
@@ -98,7 +110,6 @@ exports.retriveMessage = function (state, msg) {
   //otherwise, the next retrival will be triggered by READ
   return _state
 }
-
 
 
 
