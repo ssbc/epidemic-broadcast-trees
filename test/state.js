@@ -249,6 +249,103 @@ tape('receiveMessage, random', function (t) {
   t.end()
 })
 
+/*
+  appendMessage is called when a message in this feed has been added to the local database.
+  it can be triggered because it was created locally, or received from another peer.
+
+  if we are in sending mode
+    if it's the next message they need, {
+      //there could be an unsent note
+      make it ready
+    }
+  else
+    make a _have_ note about it
+
+//    if there isn't something else ready
+    if we are in sending mode, make it ready
+
+    if you where about to 
+
+*/
+
+function post_appendMessage(_state, state, message) {
+  var t = this
+  //sending and receieving state should not change
+
+  t.equal(_state.sending,   state.sending)
+  t.equal(_state.receiving, state.receiving)
+  t.equal(_state.sent,      state.sent)
+  t.equal(_state.received,  state.received)
+
+  //if ready was not set, it can only become set to the message.
+  //but not always, because the remote might not be up to this.
+  if(!_state.ready && state.sending)
+    if(state.ready) {
+      t.deepEqual(state.ready, message)
+    }
+  if(state.sending && state.sent + 1 == message.sequence && state.received < message.sequence) {
+      t.deepEqual(state.ready, message)
+  }
+  else if(!state.sending && state.received < message.sequence)
+    t.deepEqual(state.ready, {id: message.author, seq: -message.sequence}, 'send ack')
+
+  if(state.received > message.sequence && state.sending) {
+    if(u.isNote(_state.ready) && _state.ready.seq < 0)
+      t.equal(state.ready, null, 'if they are still ahead, then don\'t tell them not to send')
+    else if(state.ready) {
+      t.deepEqual(state.ready, {id: message.author, seq: message.sequence}, 'if we where going to ask for this feed, update to latest')
+    }
+  }
+  //if we where asking for this feed, and it hasn't been sent
+  //we actually need to send that, but update the request.
+  if(u.isNote(state.ready)) {
+    t.equal(Math.abs(state.ready.seq), message.sequence, 'if we are sending a note, make sure it is up to date')
+
+    if(_state.ready.seq > 0)
+      t.equal(_state.ready.seq, message.sequence)
+    else
+      t.equal(_state.ready.seq, -message.sequence)
+  }
+  //hang on - what situations cause this?
+  //maybe it's the initial request on a new connection, we gotta send that.
+  //BUT if it's because we receive a note for the previous message
+  //then send this one.
+  //but if they are ahead of this message. send nothing.
+
+  
+
+}
+
+tape('appendMessage', function (t) {
+
+  var local = {alice: 5}
+
+  for(var i = 0; i < 100; i++) {
+
+    var state = {
+      local: local,
+      received: 3 + ~~(Math.random()*5),
+      sent: 1 + ~~(Math.random()*4),
+      sending: Math.random() < 0.5,
+      receiving: Math.random() < 0.5,
+      ready: Math.random() < 0.5 ? {id: 'alice', seq: Math.random() < 0.5 ? -4 : 4} : null
+      //under what situations would a request be sent?
+    }
+
+    var message = {author: 'alice', sequence:  5, content: 'hello'}
+    var _state = JSON.parse(JSON.stringify(state))
+    var state = states.appendMessage(state, message)
+
+    post_appendMessage.call(t, _state, state, message)
+
+  }
+
+  t.end()
+})
+
+
+
+
 
 
 
