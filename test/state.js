@@ -2,6 +2,10 @@ var states = require('../state')
 var tape = require('tape')
 var u = require('../util')
 
+function clone (obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+
 tape('receiveMessage 1', function (t) {
 
   var local = {alice: 2}
@@ -147,7 +151,7 @@ tape('receiveNote, with random seqs and signs', function (t) {
       ready: Math.random() < 0.2 ? {author: 'alice', sequence: 5, content: 'hello'} : null
     }
 
-    var _state = JSON.parse(JSON.stringify(state))
+    var _state = clone(state)
     var note = {id: 'alice', seq: ~~(Math.random()*20) - 10}
     state = states.receiveNote(state, note)
     post_receiveNote.call(t, _state, state, note)
@@ -237,7 +241,7 @@ tape('receiveMessage, random', function (t) {
       local: {alice: 5}
     }
 
-    var _state = JSON.parse(JSON.stringify(state))
+    var _state = clone(state)
     var message = {author: 'alice', sequence:  2 + ~~(Math.random()*3), content: 'hello'}
 
     state = states.receiveMessage(state, message)
@@ -266,6 +270,19 @@ tape('receiveMessage, random', function (t) {
 
     if you where about to 
 
+  if(we where about to send the initial request)
+    make sure it is up to date.
+
+  else if you are in sending mode
+    XXX if we havn't sent an initial request, then send something?
+    if it's the next message needed, send it.
+    else
+      null
+  else
+    if it's greater than the message we know they have,
+      send a -note
+    else
+      null
 */
 
 function post_appendMessage(_state, state, message) {
@@ -276,6 +293,9 @@ function post_appendMessage(_state, state, message) {
   t.equal(_state.receiving, state.receiving)
   t.equal(_state.sent,      state.sent)
   t.equal(_state.received,  state.received)
+
+  if(state.received == null)
+    t.notOk(u.isMessage(state.ready), 'if we havn\'t heard what they got, we must not send anything')
 
   //if ready was not set, it can only become set to the message.
   //but not always, because the remote might not be up to this.
@@ -333,7 +353,7 @@ tape('appendMessage', function (t) {
     }
 
     var message = {author: 'alice', sequence:  5, content: 'hello'}
-    var _state = JSON.parse(JSON.stringify(state))
+    var _state = clone(state)
     var state = states.appendMessage(state, message)
 
     post_appendMessage.call(t, _state, state, message)
@@ -343,14 +363,56 @@ tape('appendMessage', function (t) {
   t.end()
 })
 
+tape('appendMessage in initial state', function (t) {
+  var state = {
+    local: {alice: 1},
+    sent: null, received: null,
+    sending: null, receiving: null,
+    ready: {id: 'alice', seq: 1}
+  }
+  var message = {author: 'alice', sequence: 1, content: 'hi there'}
+
+  var _state = clone(state)
+  state = states.appendMessage(state, message)
+
+  post_appendMessage.call(t, _state, state, message)
+  t.end()
+})
 
 
+tape('retriveMessage', function (t) {
+  //so simple testing isn't interesting.
+  //if the state is "sending" and the retrived message is next
+  //then send it.
+  t.end()
+})
 
+function post_read (_state, state) {
+  if(!_state.ready) return _state //nothing.
 
+  var id = u.isNote(_state.ready) ? _state.ready.id : _state.ready.author
+  var seq = u.isNote(_state.ready) ? Math.abs(_state.ready.seq) : _state.ready.sequence
 
+  t.equal(state.sent, seq)
+  t.equal(state.ready, null)
 
+  //retrive the next item, if we have something.
+  if(state.sending && state.sent < state.local[id])
+    state.effect = {action: 'get', value: {id: id, seq: state.sent + 1}}
 
+}
 
+tape('read', function (t) {
+  return t.end()
+  //assume ready is already taken and sent by the glue layer.
+  post_read.call(t, _state, state)
+
+  //if there is another message ready to send, send it.
+  //notes are never triggered from here. so in other places
+  //that change from sending a note to a message should only
+  //do that if the notes are now redundant.
+  t.end()
+})
 
 
 

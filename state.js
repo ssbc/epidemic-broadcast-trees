@@ -7,28 +7,35 @@ var isNote = u.isNote
 function clone (state) { return state }
 
 //actually, want to be able to initialize this in receive mode or not.
-exports.init = function (local, seq) {
+exports.init = function (local) {
   return {
     local: local,
-    sending: seq > 0,
-    receiving: false,
-    sent: Math.abs(seq), received: Math.abs(seq),
+    sending: null,
+    receiving: null,
+    sent: null,
+    received: null,
+    requested: null,
     ready: null,
-    effect: []
+    effect: null
   }
 }
 
 //this is not a reduce, and it has side effects.
-exports.read = function (state) {
-  if(!state.ready) return [null, state]
+exports.read = function (state, id) {
+  if('string' !== typeof id) throw new Error('read expected an id')
+  if(!state.ready) return state
   var _ready = state.ready
   state.ready =  null
   if(isMessage(_ready))
     state.sent = _ready.sequence
-  return [_ready, state]
+
+  if(state.local[id] > state.sent)
+    state.effect = {action: 'get', value: {id: id, seq: state.sent + 1}}
+  return state
 }
 
 exports.receiveMessage = function (state, msg) {
+  if(!isMessage(msg)) throw new Error('expected a Message!')
   var _state = clone(state)
   _state.received = Math.max(state.received || 0, msg.sequence)
 
@@ -54,7 +61,7 @@ exports.receiveMessage = function (state, msg) {
 exports.receiveNote = function (state, note) {
   var _state = clone(state)
   var seq = state.local[note.id]
-  var requested = note.seq > 0
+  var requested = note.seq >= 0
   var _seq = Math.abs(note.seq)
 
   _state.received = _seq
@@ -85,16 +92,16 @@ exports.appendMessage = function (state, msg) {
     if(state.sent + 1 === msg.sequence && state.received < msg.sequence)
       _state.ready = msg
     else if(isNote(state.ready)) //this should only happen when it is the initial request
-      _state.ready = {id: msg.author, seq: msg.sequence}
+      _state.ready = {id: msg.author, seq: msg.sequence} //UPDATE NOTE
     else if(!isMessage(_state.ready))
       _state.ready = null
   }
   else if(!state.sending) {
     //unless we know they are up to this, send a note
     if(msg.sequence > state.received)
-      _state.ready = {id: msg.author, seq: -msg.sequence}
+      _state.ready = {id: msg.author, seq: -msg.sequence} //SEND NOTE
     else if(isNote(state.ready) && state.ready.seq > 0)
-      state.ready.seq = message.sequence
+      state.ready.seq = message.sequence                  //UPDATE NOTE
     else
       state.ready = null
   }
@@ -102,20 +109,22 @@ exports.appendMessage = function (state, msg) {
 }
 
 //have retrived an requested message
-exports.retriveMessage = function (state, msg) {
+exports.gotMessage = function (state, msg) {
   var _state = clone(state)
-  if(state.sending && state.received + 1 == msg.sequence)
+  if(state.sending && state.sent + 1 === msg.sequence && state.received < msg.sequence) {
     _state.ready = msg
+  }
+  else {
+    //do nothing, it's an old message, so send no notes.
+    //we should only get here is we triggered a `get` effect
+    //but then changed state before it completed.
+    ;
+  }
+  if(!state.sending) //do nothing
   //if we are not in sending state, just stop.
   //otherwise, the next retrival will be triggered by READ
+  ;
   return _state
 }
-
-
-
-
-
-
-
 
 
