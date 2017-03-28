@@ -6,81 +6,346 @@ function clone (obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
-tape('receiveMessage 1', function (t) {
+tape('init, receiveNote+, receiveMessage, appendMessage', function (t) {
 
   var msg = {sequence: 3, author: 'alice', content: 'blah'}
 
-  var _state = states.receiveMessage({
-    receiving: true, local: 2,
-  }, msg)
+  var state = states.init(2)
+  t.equal(state.ready, 2) //assume that a request for message 2 has been sent.
 
-  t.deepEqual(_state, { receiving: true, local: 2, received: 3, effect: {action: 'append', value: msg} })
+  state = states.read(state)
+  
+  //we learn that the remote is up to 10
+  state = states.receiveNote(state, 10)
+
+  //since when we receive their note we know we are behind
+  //assume they are in tx mode, but we are not.
+  t.equal(state.local.tx, false, 'since we are behind, we should not transmit')
+  t.equal(state.remote.tx, true, 'since remote is ahead, they should transmit')
+
+  var _state = states.receiveMessage(clone(state), msg)
+
+  t.deepEqual(_state, {
+    local: {seq: 2, req: 2, tx: false},
+    remote: {seq: 3, req: 10, tx: true},
+    ready: null,
+    effect: {action: 'append', value: msg}
+  })
+
+  _state.effect = null //assume this was appended
+
+  _state = states.appendMessage(_state, msg)
+
+  t.deepEqual(_state, {
+    local: {seq: 3, req: 2, tx: false},
+    remote: {seq: 3, req: 10, tx: true},
+    ready: null,
+    effect: null
+  })
+
 
   t.end()
 })
 
-//we can be ahead, behind, or in sync with the remote
-//we can also be sending, receiving, idle (neither), or both.
-//but if both, normally one will ask to stop receiving soon.
+tape('init, receiveNote-, getMessage, read', function (t) {
 
-tape('receiveNote, remote requests for sequence we have', function (t) {
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
 
-  var state = {
-    local: 2, sending: false
-  }
+  var state = states.init(10)
+  t.equal(state.ready, 10) //assume that a request for message 2 has been sent.
 
-  var _state = states.receiveNote(state, 2)
+  state = states.read(state)
+  
+  //we learn that the remote is up to 10
+  state = states.receiveNote(state, 2)
 
-  t.ok(_state.sending)
-  t.equal(_state.received, 2)
-  t.notOk(_state.effect) //no effect, because we don't have a message for them yet!
-  t.end()
+  //since when we receive their note we know we are behind
+  //assume they are in tx mode, but we are not.
+  t.equal(state.local.tx, true, 'transmit because we are ahead')
+  t.equal(state.remote.tx, false, 'since remote is behind, they should not transmit')
 
-})
+  t.deepEqual(state, {
+    local: {seq: 10, req: 10, tx: true},
+    remote: {seq: null, req: 2, tx: false},
+    ready: null,
+    effect: {action: 'get', value: 3}
+  })
 
-tape('receiveNote, remote requests for sequence we are past', function (t) {
+  state.effect = null //assume this was retrival
 
-  var state = {
-    local: 2, sending: false
-  }
+  state = states.gotMessage(clone(state), msg)
 
-  var _state = states.receiveNote(state, 1)
+  t.deepEqual(state, {
+    local: {seq: 10, req: 10, tx: true},
+    remote: {seq: null, req: 2, tx: false},
+    ready: msg,
+    effect: null
+  })
 
-  t.ok(_state.sending)
-  t.equal(_state.received, 1)
-  t.deepEqual(_state.effect, {action: 'get', value: 2})
+  var data = state.ready //the data to send.
+  state = states.read(state) //hmm, or better symetry if read leaves ready?
 
-  t.end()
-
-})
-
-tape('receiveNote, remote requests unrequests message we are sending', function (t) {
-  var state = {
-    local: 2, sending: true, receiving: false
-  }
-
-  var _state = states.receiveNote(state, -2)
-
-  t.notOk(_state.sending)
-  t.equal(_state.received, 2)
-  t.notOk(_state.effect)
-
-  t.end()
-
-})
-
-tape('receiveNote, remote requests unrequests message when we are not sending', function (t) {
-  var state = {
-    local: 2, sending: false, receiving: false
-  }
-
-  var _state = states.receiveNote(state, -2)
-
-  t.notOk(_state.sending)
-  t.equal(_state.received, 2)
-  t.notOk(_state.effect)
+  t.deepEqual(state, {
+    local: {seq: 10, req: 10, tx: true},
+    remote: {seq: 3, req: 2, tx: false},
+    ready: null,
+    effect: {action: 'get', value: 4}
+  })
 
   t.end()
-
 })
+
+tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+
+  state = states.read(state) //in sync with remote
+  t.equal(state.effect, null, 'in sync, so send nothing')
+  state = states.receiveNote(state, 2)
+
+  //if we are both in sync, then both transmit, and one of us will turn off later
+  t.equal(state.local.tx, true, 'transmit because we are in sync')
+  t.equal(state.remote.tx, true, 'transmit because we are both in sync')
+
+  t.deepEqual(state, {
+    local: {seq: 2, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  //message is appended, as if it was created locally,
+  //or received from another peer.
+  state = states.appendMessage(state, msg)
+
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: msg,
+    effect: null
+  })
+
+  //the message is sent.
+  state = states.read(state)
+
+  t.equal(state.null)
+  t.equal(state.remote.seq, 3)
+
+  //but they send the same message at the same time.
+  state = states.receiveMessage(state, msg)
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    remote: {seq: 3, req: 3, tx: true},
+    ready: -msg.sequence,
+    effect: null
+  })
+
+  state = states.read(state)
+
+  t.deepEqual(state, {
+    local: {seq: 3, req: 3, tx: true},
+    remote: {seq: 3, req: 3, tx: false},
+    ready: null,
+    effect: null
+  })
+
+  t.end()
+})
+
+//start in sync, receive a message (turn off transmit), append, emit a note, get requested back into tx
+
+tape('init, receiveNote(sync), receiveMessage, read(note), receiveNote', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+  var msg2 = {sequence: 4, author: 'alice', content: 'hahaha'}
+
+  state = states.read(state) //in sync with remote
+  t.equal(state.effect, null, 'in sync, so send nothing')
+  state = states.receiveNote(state, 2)
+
+  //if we are both in sync, then both transmit, and one of us will turn off later
+  t.equal(state.local.tx, true, 'transmit because we are in sync')
+  t.equal(state.remote.tx, true, 'transmit because we are both in sync')
+
+  t.deepEqual(state, {
+    local: {seq: 2, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  //but they send the same message at the same time.
+  state = states.receiveMessage(state, msg)
+  t.deepEqual(state, {
+    local: {seq: 2, req: 2, tx: false},
+    remote: {seq: 3, req: 3, tx: true},
+    ready: null,
+    effect: {action: 'append', value: msg}
+  })
+
+  //assume this has been appended
+  state.effect = null
+
+  //we are now NOT tranmitting, so if we receive the next message on another connection,
+  //we should send a note for it.
+
+  state = states.appendMessage(state, msg2)
+
+  t.deepEqual(state, {
+    local: {seq: 4, req: 2, tx: false},
+    remote: {seq: 3, req: 3, tx: true},
+    ready: 4,
+    effect: null
+  })
+
+  state = states.read(state)
+
+  t.deepEqual(state, {
+    local: {seq: 4, req: 4, tx: false},
+    remote: {seq: 3, req: 3, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  //then, lets say the other peer hasn't seen this message.
+  //they don't actually know we are not in tx mode
+  //but they see a message they don't know, so they ask for it.
+  //TODO test this the other way around!
+
+  //they havn't seen 4, so they just remind us they are only up to 3
+  state = states.receiveNote(state, 3)
+
+  t.deepEqual(state, {
+    local: {seq: 4, req: 4, tx: true},
+    remote: {seq: 3, req: 3, tx: true},
+    ready: null,
+    effect: {action: 'get', value: 4}
+  })
+
+  t.end()
+})
+
+
+//the other peer decides to turn off tx,
+//but then sends a new note, so we rerequest.
+
+tape('init, receiveNote(sync), appendMessage, read, receiveNote!', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+
+  state = states.read(state) //in sync with remote
+  t.equal(state.effect, null, 'in sync, so send nothing')
+  state = states.receiveNote(state, 2)
+
+  //if we are both in sync, then both transmit, and one of us will turn off later
+  t.equal(state.local.tx, true, 'transmit because we are in sync')
+  t.equal(state.remote.tx, true, 'transmit because we are both in sync')
+
+  t.deepEqual(state, {
+    local: {seq: 2, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  //message is appended, as if it was created locally,
+  //or received from another peer.
+  state = states.appendMessage(state, msg)
+
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: msg,
+    effect: null
+  })
+
+  //the message is sent.
+  state = states.read(state)
+
+  t.equal(state.null)
+  t.equal(state.remote.seq, 3)
+
+  //but they send the same message at the same time.
+  state = states.receiveNote(state, 4)
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    //maybe this really ought to be tx:false
+    remote: {seq: 3, req: 4, tx: true},
+    ready: 3,
+    effect: null
+  })
+
+  state = states.read(state)
+  t.deepEqual(state, {
+    local: {seq: 3, req: 3, tx: true},
+    remote: {seq: 3, req: 4, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  t.end()
+})
+
+tape('init, receiveNote(sync), appendMessage, read, receiveNote!', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+  var msg2 = {sequence: 4, author: 'alice', content: 'whatever'}
+
+  state = states.read(state) //in sync with remote
+  t.equal(state.effect, null, 'in sync, so send nothing')
+  state = states.receiveNote(state, 2)
+
+  //if we are both in sync, then both transmit, and one of us will turn off later
+  t.equal(state.local.tx, true, 'transmit because we are in sync')
+  t.equal(state.remote.tx, true, 'transmit because we are both in sync')
+
+  t.deepEqual(state, {
+    local: {seq: 2, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  //message is appended, as if it was created locally,
+  //or received from another peer.
+  state = states.appendMessage(state, msg)
+
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    remote: {seq: null, req: 2, tx: true},
+    ready: msg,
+    effect: null
+  })
+
+  //the message is sent.
+  state = states.read(state)
+
+  t.equal(state.null)
+  t.equal(state.remote.seq, 3)
+
+  //but they send the same message at the same time.
+  state = states.receiveNote(state, 4)
+  t.deepEqual(state, {
+    local: {seq: 3, req: 2, tx: true},
+    //maybe this really ought to be tx:false
+    remote: {seq: 3, req: 4, tx: true},
+    ready: 3,
+    effect: null
+  })
+
+  //BUT, before it can be sent, the same message is appended!
+
+  state = states.appendMessage(state, msg2)
+
+//  state = states.read(state)
+  t.deepEqual(state, {
+    local: {seq: 4, req: 2, tx: true},
+    remote: {seq: 3, req: 4, tx: true},
+    ready: null,
+    effect: null
+  })
+
+  t.end()
+})
+
 
