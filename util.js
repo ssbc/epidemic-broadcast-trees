@@ -16,5 +16,6 @@ exports.isMessage = function (msg) {
 }
 
 exports.isNote = function (note) {
-  return note && Number.isInteger(note.seq) && 'string' == typeof note.author && !msg.content
+  return Number.isInteger(note)
+//  return note && Number.isInteger(note.seq) && 'string' == typeof note.author && !msg.content
 }
