@@ -50,7 +50,7 @@ exports.read = function (state) {
   }
 
   if(canSend(state))
-    state.effect = {action: 'get', value: Math.max(state.remote.seq, state.remote.req) + 1}
+    state.effect = Math.max(state.remote.seq, state.remote.req) + 1
   return state
 }
 
@@ -97,7 +97,7 @@ exports.receiveMessage = function (state, msg) {
       _state.local.tx = false
     if(state.ready != null)
       _state.ready = null
-    _state.effect = {action: 'append', value: msg}
+    _state.effect = msg
   }
   else
     _state.error = true
@@ -130,25 +130,13 @@ exports.receiveNote = function (state, note) {
 
   if(seq < _seq/* && state.remote.tx == null*/) {
     //if(state.remote.tx !== null)
-    console.log(_state, seq, _seq, note)
     if(requested && state.remote.tx == false)
       _state.remote.tx = false
     _state.ready = seq
   }
-//  else
 
-//  if(seq < _seq) {
-//    //_state.remote.tx = false
-//    _state.ready = seq
-//  }
-//  if(seq < _seq) {
-//    _state.remote.tx = false
-//    _state.ready = seq
-//  }
-//
-  console.log((seq > _seq), requested, seq, _seq)
   if((seq > _seq) && requested) {
-    _state.effect = {action: 'get', value: _seq + 1}
+    _state.effect = _seq + 1
   }
 
   return _state
@@ -204,14 +192,4 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
-
-
-
-
-
-
-
-
-
-
 

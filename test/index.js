@@ -29,7 +29,7 @@ tape('init, receiveNote+, receiveMessage, appendMessage', function (t) {
     local: {seq: 2, req: 2, tx: false},
     remote: {seq: 3, req: 10, tx: true},
     ready: null,
-    effect: {action: 'append', value: msg}
+    effect: msg
   })
 
   _state.effect = null //assume this was appended
@@ -68,7 +68,7 @@ tape('init, receiveNote-, getMessage, read', function (t) {
     local: {seq: 10, req: 10, tx: true},
     remote: {seq: null, req: 2, tx: false},
     ready: null,
-    effect: {action: 'get', value: 3}
+    effect: 3
   })
 
   state.effect = null //assume this was retrival
@@ -89,7 +89,7 @@ tape('init, receiveNote-, getMessage, read', function (t) {
     local: {seq: 10, req: 10, tx: true},
     remote: {seq: 3, req: 2, tx: false},
     ready: null,
-    effect: {action: 'get', value: 4}
+    effect: 4
   })
 
   t.end()
@@ -180,7 +180,7 @@ tape('init, receiveNote(sync), receiveMessage, read(note), receiveNote', functio
     local: {seq: 2, req: 2, tx: false},
     remote: {seq: 3, req: 3, tx: true},
     ready: null,
-    effect: {action: 'append', value: msg}
+    effect: msg
   })
 
   //assume this has been appended
@@ -219,7 +219,7 @@ tape('init, receiveNote(sync), receiveMessage, read(note), receiveNote', functio
     local: {seq: 4, req: 4, tx: true},
     remote: {seq: 3, req: 3, tx: true},
     ready: null,
-    effect: {action: 'get', value: 4}
+    effect: 4
   })
 
   t.end()
