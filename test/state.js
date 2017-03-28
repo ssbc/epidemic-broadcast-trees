@@ -6,85 +6,12 @@ function clone (obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
-tape('receiveMessage 1', function (t) {
-
-  var local = {alice: 2}
-
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
-
-  var _state = states.receiveMessage({
-    receiving: true, local: local,
-  }, msg)
-
-  t.deepEqual(_state, { receiving: true, local: local, received: 3, effect: {action: 'append', value: msg} })
-
-  t.end()
-})
-
-//we can be ahead, behind, or in sync with the remote
-//we can also be sending, receiving, idle (neither), or both.
-//but if both, normally one will ask to stop receiving soon.
-
-tape('receiveNote, remote requests for sequence we have', function (t) {
-
-  var local = {alice: 2}
-
-  var state = {
-    local: local, sending: false
-  }
-
-  var _state = states.receiveNote(state, {id: 'alice', seq: 2})
-
-  t.ok(_state.sending)
-  t.equal(_state.received, 2)
-  t.notOk(_state.effect) //no effect, because we don't have a message for them yet!
-  t.end()
-
-})
-
-tape('receiveNote, remote requests for sequence we are past', function (t) {
-
-  var local = {alice: 2}
-
-  var state = {
-    local: local, sending: false
-  }
-
-  var _state = states.receiveNote(state, {id: 'alice', seq: 1})
-
-  t.ok(_state.sending)
-  t.equal(_state.received, 1)
-  t.deepEqual(_state.effect, {action: 'get', value: {id: 'alice', seq: 2}})
-
-  t.end()
-
-})
-
-tape('receiveNote, remote requests unrequests message we are sending', function (t) {
-  var local = {alice: 2}
-
-  var state = {
-    local: local, sending: true, receiving: false
-  }
-
-  var _state = states.receiveNote(state, {id: 'alice', seq: -2})
-
-  t.notOk(_state.sending)
-  t.equal(_state.received, 2)
-  t.notOk(_state.effect)
-
-  t.end()
-
-})
-
 tape('receiveNote, remote requests unrequests message when we are not sending', function (t) {
-  var local = {alice: 2}
-
   var state = {
-    local: local, sending: false, receiving: false
+    local: 2, sending: false, receiving: false
   }
 
-  var _state = states.receiveNote(state, {id: 'alice', seq: -2})
+  var _state = states.receiveNote(state, -2)
 
   t.notOk(_state.sending)
   t.equal(_state.received, 2)
@@ -93,7 +20,7 @@ tape('receiveNote, remote requests unrequests message when we are not sending', 
   t.end()
 
 })
-
+return
 //things that should be true, after receiving a note.
 function post_receiveNote (_state, state, note) {
   var t = this
@@ -413,6 +340,4 @@ tape('read', function (t) {
   //do that if the notes are now redundant.
   t.end()
 })
-
-
 
