@@ -98,6 +98,10 @@ exports.receiveMessage = function (state, msg) {
     if(state.ready != null)
       _state.ready = null
     _state.effect = msg
+
+    //update local seq, instead of calling to append?
+    //so that we can handle the next incomming?
+    //what if an invalid message arrives? we should abort this receiver...
   }
   else
     _state.error = true
@@ -130,9 +134,11 @@ exports.receiveNote = function (state, note) {
 
   if(seq < _seq/* && state.remote.tx == null*/) {
     //if(state.remote.tx !== null)
-    if(requested && state.remote.tx == false)
-      _state.remote.tx = false
-    _state.ready = seq
+    if(state.local.req !== seq) {
+      if(requested && state.remote.tx == false)
+        _state.remote.tx = false
+      _state.ready = seq
+    }
   }
 
   if((seq > _seq) && requested) {
@@ -145,6 +151,7 @@ exports.receiveNote = function (state, note) {
 //we have either written a new message ourselves,
 //or received a message (and validated it) from another peer.
 exports.appendMessage = function (state, msg) {
+  if(!isMessage(msg)) throw new Error('appendMessage expects a message!')
   //if this is the msg they need next, make
   var _state = clone(state)
 
@@ -192,4 +199,9 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
+
+
+
+
+
 
