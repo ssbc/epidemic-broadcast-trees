@@ -7,11 +7,11 @@ var isNote = u.isNote
 function clone (state) { return state }
 
 function isInitRx (state) {
-  return (state.remote.req == null && state.remote.tx == null) || (state.local.tx == null && state.local.req == null)
+  return state.remote.req == null || state.local.req == null
 }
 
 function canSend(state) {
-  return isInitRx(state) &&
+  return !isInitRx(state) &&
     state.local.seq > Math.max(state.remote.seq, state.remote.req)  && state.local.tx
 }
 
@@ -42,15 +42,17 @@ exports.read = function (state) {
   if(state.ready == null) return state
   var _ready = state.ready
   state.ready =  null
-  if(isMessage(_ready))
+  if(isMessage(_ready)) {
     state.remote.seq = _ready.sequence
-  else {
+    state.local.req = Math.max(state.local.req, _ready.sequence)
+  } else {
     state.local.req = Math.abs(_ready)
     state.remote.tx = _ready >= 0
   }
 
-  if(canSend(state))
+  if(canSend(state)) {
     state.effect = Math.max(state.remote.seq, state.remote.req) + 1
+  }
 
   return state
 }
@@ -111,6 +113,7 @@ exports.receiveMessage = function (state, msg) {
 }
 
 exports.receiveNote = function (state, note) {
+  if(!isNote(note)) throw new Error('expected note!')
   var _state = clone(state)
   var seq = state.local.seq
   var requested = note >= 0
@@ -141,15 +144,15 @@ exports.receiveNote = function (state, note) {
   //but they sent us a note, then obviously they weren't
   //so turn off remote.tx and request it again.
 
-  if(seq < _seq/* && state.remote.tx == null*/) {
-    //if(state.remote.tx !== null)
-    if(state.local.req !== seq) {
-      if(requested && state.remote.tx == false)
-        _state.remote.tx = false
-      _state.ready = seq
-    }
-  }
-
+//  if(seq < _seq/* && state.remote.tx == null*/) {
+//    //if(state.remote.tx !== null)
+//    if(state.local.req !== seq) {
+//      if(requested && state.remote.tx == false)
+//        _state.remote.tx = false
+//      _state.ready = seq
+//    }
+//  }
+//
   if((seq > _seq) && requested) {
     _state.effect = _seq + 1
   }
@@ -208,11 +211,6 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
-
-
-
-
-
 
 
 
