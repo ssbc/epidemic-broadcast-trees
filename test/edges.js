@@ -28,7 +28,7 @@ tape('receive remote note before we sent ours', function (t) {
 
   t.deepEqual(state, {
     local: {seq: 2, req: null, tx: true},
-    remote: {seq: null, req: 1, tx: false},
+    remote: {seq: null, req: 1, tx: true},
     ready: 2,
     effect: null
   })
