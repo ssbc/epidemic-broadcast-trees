@@ -7,7 +7,7 @@ var isNote = u.isNote
 function clone (state) { return state }
 
 function isInitRx (state) {
-  return state.remote.req != null && state.remote.tx != null
+  return (state.remote.req == null && state.remote.tx == null) || (state.local.tx == null && state.local.req == null)
 }
 
 function canSend(state) {
@@ -25,11 +25,11 @@ exports.init = function (local) {
       //highest sequence we have
       //the sequence we asked for (set on initial)
       //whether we are transmitting
-    local: {seq: local, req: null, tx: null},
+    local: {seq: local, req: null, tx: true},
       //the highest sequence we have sent to them
       //the sequence they gave us (which they thus definitely have)
       //whether they are transmitting
-    remote: {seq: null, req: null, tx: null},
+    remote: {seq: null, req: null, tx: true},
     //the next item to send. (orderly queue)
     ready: local,
     //the next thing to do to database (disorderly queue)
@@ -51,6 +51,7 @@ exports.read = function (state) {
 
   if(canSend(state))
     state.effect = Math.max(state.remote.seq, state.remote.req) + 1
+
   return state
 }
 
@@ -84,7 +85,7 @@ exports.receiveMessage = function (state, msg) {
   var seq = state.local.seq
   if(isOldMessage(state, msg)) {
     //we already know this, please shut up!
-    if(state.remote.tx) {
+    if(state.remote.tx === true) {
       //let read move us out of tx mode,
       //incase this note is overridden.
       //_state.remote.tx = false
@@ -93,8 +94,8 @@ exports.receiveMessage = function (state, msg) {
   }
   else if(isNextRxMessage(state, msg)) {
     //since we now know they are ahead, stop transmitting to them
-    if(state.local.tx === true)
-      _state.local.tx = false
+//    if(state.local.tx === true)
+//      _state.local.tx = false
     if(state.ready != null)
       _state.ready = null
     _state.effect = msg
@@ -115,15 +116,23 @@ exports.receiveNote = function (state, note) {
   var requested = note >= 0
   var _seq = Math.abs(note)
 
-  if(!isInitRx(state)) {
-    _state.remote.tx = _seq >= seq
-    //if they have asked us not to send, don't.
-    _state.local.tx = _seq <= seq && requested
-  }
-  else {
+//  if(isInitRx(state)) {
+//    //_state.remote.tx = _seq >= seq
+//    //if they have asked us not to send, don't.
+//    //_state.local.tx = _seq <= seq && requested
+//  }
+//  else {
     _state.local.tx = requested
-  }
+//  }
   _state.remote.req = _seq
+
+  if(state.local.req == null) return _state
+
+  //(turn off transmit if they are ahead of us)
+//  _state.remote.tx = _seq >= seq
+//  _state.local.tx = _seq <= seq && requested
+  _state.local.tx = requested
+
 
   if(isMessage(state.ready) && _seq > state.ready.sequence)
       state.ready = null
@@ -199,6 +208,8 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
+
+
 
 
 
