@@ -29,7 +29,7 @@ module.exports = function (state, random) {
 
   var keys = Object.keys(acts)
 
-  var key = keys[~~(Math.random()*keys.length)]
+  var key = keys[~~(random*keys.length)]
 
   if(key === 'send') {
     var data = state.nodeState.ready
