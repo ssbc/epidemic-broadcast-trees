@@ -93,6 +93,8 @@ function run (t, seed) {
     var n = randomValue(randomValue(network))
     if(n) {
       n = model(n, random())
+      if(n.nodeState.local.tx == false)
+        throw new Error('transmit should always be true inthis test')
       if(n.nodeState.error) {
         throw new Error('error state')
       }
