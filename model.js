@@ -41,7 +41,7 @@ module.exports = function (state, random) {
     state.nodeState.effect = null
     state.nodeState = states.gotMessage(state.nodeState, msg)
   }
-  else {
+  else if(key == 'ordered'){
     if(state.emit) {
       var msg = state.emit
       state.emit = null
@@ -52,18 +52,20 @@ module.exports = function (state, random) {
       state.log.push(state.emit)
       state.nodeState.effect = null
     }
-    else {
+    else if(state.source.length) {
       var data = state.source.shift()
+      if(data == null) throw new Error('should never read null/undefined from network')
       state.nodeState = (isMessage(data) ? states.receiveMessage : states.receiveNote)(state.nodeState, data)
     }
+    else throw new Error('should not have ran out of options')
   }
-
+//  else {
+//    console.log(state, acts)
+//    throw new Error('attempted to run transition, when nothing to be done')
+//  }
   return state
 }
 
 function isMessage(data) { return data && 'object' === typeof data }
 function isNote(n) { return Number.isInteger(n) }
-
-
-
 
