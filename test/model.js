@@ -7,6 +7,102 @@ var RNG = require('rng')
 
 //state is {source, sink, nodeState, log, old_length}
 
+function peer (network, id, log) {
+  if(!log) log = []
+
+  network[id] = {
+    id: id, log: log, emit: false,
+    connections: {}
+  }
+
+  return network
+}
+
+function connection (network, from, to) {
+  network[from].connections[to] = {
+    source: [], sink: [], nodeState: states.init(network[from].log.length),
+    id: from, remote: to, log: network[from].log
+  }
+  network[to].connections[from] = {
+    source: [], sink: [], nodeState: states.init(network[to].log.length),
+    id: to, remote: from, log: network[to].log
+  }
+  return network
+}
+
+function countConnections (network) {
+  //count unidirectional connections then divide by 2 to get duplex connections
+  var uniplex = 0
+  for(var k in network) {
+    uniplex += Object.keys(network[k].connections).length
+  }
+  return uniplex / 2
+}
+
+function isConsistent (t, network) {
+  for(var k in network)
+    for(var j in network) {
+      if(k != j)
+        t.deepEqual(network[k].log, network[j].log, 'peer:'+k +' is consistent with :'+j)
+    }
+}
+
+function hasWork (pState, cState) {
+  return (
+    pState.emit || cState.source.length ||
+    cState.nodeState.ready != null ||
+    cState.nodeState.effect != null
+  )
+}
+
+function evolveNetwork (network, msglog, seed) {
+  var rng = new RNG.MT(seed)
+
+  function random () {
+    return rng.random()
+  }
+
+  function isWaiting() {
+    for(var k in network)
+      for(var j in network[k].connections)
+        if(hasWork(network[k], network[k].connections[j])) {
+          return true
+        }
+  }
+
+  function randomValue(obj) {
+    var k = Object.keys(obj)
+    return obj[k[~~(random()*k.length)]]
+  }
+
+  while(isWaiting()) {
+    var pState = randomValue(network)
+    var cState = randomValue(pState.connections)
+    if(cState) {
+      var r = model(pState, cState, random())
+      pState = r[0]
+      cState = r[1]
+
+      if(cState.nodeState.local.tx == false)
+        throw new Error('transmit should always be true inthis test')
+      if(cState.nodeState.error) {
+        throw new Error('error state')
+      }
+      //copy from the sink to the source immediately, since it gets read randomly anyway.
+      if(cState.sink.length)
+        console.log('send', cState.id+'->'+cState.remote, cState.sink)
+      while(cState.sink.length) {
+        if(cState.sink[0] == null) throw new Error('cannot send null')
+        var data = cState.sink.shift()
+        msglog.push({from: cState.id, to: cState.remote, data: data})
+        network[cState.remote].connections[cState.id].source.push(data)
+      }
+    }
+  }
+
+  return network
+}
+
 function run (t, seed) {
 
   var rng = new RNG.MT(seed)
@@ -21,106 +117,32 @@ function run (t, seed) {
     {author: 'a', sequence: 3, content: 'c'}
   ]
 
-  var ab_state = {
-    source: [], sink:[], nodeState: states.init(3),
-    log: a_log, remote: 'B', id: 'A'
-  }
-
-  //var ac_state = {
-  //  source: [], sink:[], nodeState: states.init(3),
-  //  log: a_log, remote: 'C', id: 'A'
-  //}
-  //
-
-  var b_log = []
-  var ba_state = {
-    source: [], sink:[], nodeState: states.init(0),
-    log: b_log, remote: 'A', id: 'B'
-  }
-
-  //var bc_state = {
-  //  source: [], sink:[], nodeState: states.init(0),
-  //  log: b_log, remote: 'C', id: 'B'
-  //}
-  //var c_log = []
-  //var ca_state = {
-  //  source: [], sink:[], nodeState: states.init(0),
-  //  log: c_log, remote: 'A', id: 'C'
-  //}
-  //var cb_state = {
-  //  source: [], sink:[], nodeState: states.init(0),
-  //  log: c_log, remote: 'A', id: 'C'
-  //}
-
-  var network = {
-    A: {
-      B: ab_state,
-  //    C: ac_state
-    },
-    B: {
-      A: ba_state,
-  //    C: bc_state
-    },
-  //  C: {A: ca_state, B: cb_state}
-  }
+  var network = {}
+  network = peer(network, 'A', a_log)
+  network = peer(network, 'B', [])
+  network = connection(network, 'A', 'B')
 
   //initialize
 
-  function hasWork (state) {
-    return (
-      state.emit || state.source.length ||
-      state.nodeState.ready != null ||
-      state.nodeState.effect != null
-    )
-  }
-
-  function isWaiting() {
-    for(var k in network)
-      for(var j in network[k])
-        if(hasWork(network[k][j])) {
-          return true
-        }
-  }
-
-  function randomValue(obj) {
-    var k = Object.keys(obj)
-    return obj[k[~~(random()*k.length)]]
-  }
-
   var msglog = []
 
-  while(isWaiting()) {
-    var n = randomValue(randomValue(network))
-    if(n) {
-      n = model(n, random())
-      if(n.nodeState.local.tx == false)
-        throw new Error('transmit should always be true inthis test')
-      if(n.nodeState.error) {
-        throw new Error('error state')
-      }
-      //copy from the sink to the source immediately, since it gets read randomly anyway.
-      if(n.sink.length)
-        console.log('send', n.id+'->'+n.remote, n.sink)
-      while(n.sink.length) {
-        if(n.sink[0] == null) throw new Error('cannot send null')
-        var data = n.sink.shift()
-        msglog.push({from: n.id, to: n.remote, data: data})
-        network[n.remote][n.id].source.push(data)
-      }
-    }
-  }
-  console.log(JSON.stringify(network, null, 2))
+  network = evolveNetwork(network, msglog, random())
 
-  console.log(msglog)
-
-  t.deepEqual(msglog.filter(function (e) {
+  t.equal(msglog.filter(function (e) {
     return u.isNote(e.data)
-  }).map(function (e) { return e.data }).sort(), [0, 3], 'exactly two notes are sent')
-  t.ok(u.isNote(msglog[0].data), 'first message must be note')
-  t.ok(u.isNote(msglog[1].data), 'second message must be note')
+  }).length, countConnections(network)*2, 'exactly two notes are sent')
 
+  isConsistent(t, network)
 
-//  return {network: network, msglog: msglog}
+  a_log.push({author: 'a', sequence: 4, content: 'LIVE'})
+
+  network.A.emit = {author: 'a', sequence: 4, content: 'LIVE'}
+
+  t.ok(hasWork(network.A, network.A.connections.B))
+
+  network = evolveNetwork(network, msglog, random())
+  isConsistent(t, network)
+
 }
 
 if(process.argv[2])
@@ -135,6 +157,4 @@ for(var i = 0; i < 100; i++) (function (i) {
     t.end()
   })
 })(i)
-
-
 

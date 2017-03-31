@@ -10,9 +10,7 @@ function hasWork (state) {
   )
 }
 
-module.exports = function (state, random) {
-  var ops = state.ops
-
+module.exports = function (pState, cState, random) {
   /*
     we want to handle appends (and thus validation) before handling any receives.
     we can handle get and send in parallel though.
@@ -20,11 +18,12 @@ module.exports = function (state, random) {
   */
 
   var acts = {}
-  if(state.emit || state.source.length || isMessage(state.nodeState.effect))
+  //emit is shared
+  if(pState.emit || cState.source.length || isMessage(cState.nodeState.effect)) //connection
     acts.ordered = true
-  if(state.nodeState.ready != null)
+  if(cState.nodeState.ready != null)
     acts.send = true
-  if(isNote(state.nodeState.effect))
+  if(isNote(cState.nodeState.effect))
     acts.get = true
 
   var keys = Object.keys(acts)
@@ -32,40 +31,39 @@ module.exports = function (state, random) {
   var key = keys[~~(random*keys.length)]
 
   if(key === 'send') {
-    var data = state.nodeState.ready
-    state.sink.push(data)
-    state.nodeState = states.read(state.nodeState)
+    var data = cState.nodeState.ready
+    cState.sink.push(data)
+    cState.nodeState = states.read(cState.nodeState)
   }
   else if(key === 'get') {
-    var msg = state.log[state.nodeState.effect - 1]
-    state.nodeState.effect = null
-    state.nodeState = states.gotMessage(state.nodeState, msg)
+    var msg = pState.log[cState.nodeState.effect - 1] //shared
+    cState.nodeState.effect = null
+    cState.nodeState = states.gotMessage(cState.nodeState, msg)
   }
   else if(key == 'ordered'){
-    if(state.emit) {
-      var msg = state.emit
-      state.emit = null
-      state.nodeState = states.appendMessage(state.nodeState, msg)
+    //this bit should fire an event on all the connection states
+    if(pState.emit) {
+      var msg = pState.emit
+      pState.emit = null
+      cState.nodeState = states.appendMessage(cState.nodeState, msg)
     }
-    else if(isMessage(state.nodeState.effect)) {
-      state.emit = state.nodeState.effect
-      state.log.push(state.emit)
-      state.nodeState.effect = null
+    else if(isMessage(cState.nodeState.effect)) {
+      pState.emit = cState.nodeState.effect
+      pState.log.push(pState.emit) //shared
+      cState.nodeState.effect = null
     }
-    else if(state.source.length) {
-      var data = state.source.shift()
+    else if(cState.source.length) {
+      var data = cState.source.shift() //connection.
       if(data == null) throw new Error('should never read null/undefined from network')
-      state.nodeState = (isMessage(data) ? states.receiveMessage : states.receiveNote)(state.nodeState, data)
+      cState.nodeState = (isMessage(data) ? states.receiveMessage : states.receiveNote)(cState.nodeState, data)
     }
     else throw new Error('should not have ran out of options')
   }
-//  else {
-//    console.log(state, acts)
-//    throw new Error('attempted to run transition, when nothing to be done')
-//  }
-  return state
+
+  return [pState, cState]
 }
 
 function isMessage(data) { return data && 'object' === typeof data }
 function isNote(n) { return Number.isInteger(n) }
+
 
