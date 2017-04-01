@@ -67,7 +67,7 @@ function isNextRxMessage(state, msg) {
 function isNextTxMessage (state, msg) {
   return (
     !isInitRx(state) &&
-    state.local.tx &&
+//    state.local.tx &&
     state.remote.req < msg.sequence &&
     msg.sequence === (Math.max(state.remote.seq, state.remote.req) + 1)
   )
@@ -125,6 +125,12 @@ exports.receiveNote = function (state, note) {
   if(isMessage(state.ready) && _seq > state.ready.sequence)
       state.ready = null
 
+  //if they sent a note which is ahead of us, and we did not previously send something.
+
+  if(seq < _seq && state.remote.tx == false) {
+    state.ready = state.local.seq
+  }
+  else
   if((seq > _seq) && requested)
     _state.effect = _seq + 1
 
@@ -141,7 +147,7 @@ exports.appendMessage = function (state, msg) {
 
   if(state.local.tx) {
     if(isNextTxMessage(state, msg))
-      _state.ready = msg
+      _state.ready = state.local.tx ? msg : msg.sequence
     else if(isNote(state.ready)) { //this should only happen when it is the initial request
       //if it's back to even, we don't need to send a message, but if we are not
       //then the message has meaning.
@@ -181,4 +187,5 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
+
 
