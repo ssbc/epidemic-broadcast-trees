@@ -36,13 +36,14 @@ var model = exports.model = function (pState, cState, random) {
   else if(key == 'ordered'){
     //this bit should fire an event on all the connection states
     if(pState.emit) {
-      var msg = pState.emit
-      pState.emit = null
-      cState.nodeState = states.appendMessage(cState.nodeState, msg)
+      throw new Error('emit should not be handed in cstate')
+//      var msg = pState.emit
+//      pState.emit = null
+//      cState.nodeState = states.appendMessage(cState.nodeState, msg)
     }
     else if(isMessage(cState.nodeState.effect)) {
       pState.emit = cState.nodeState.effect
-      pState.log.push(pState.emit) //shared
+      //pState.log.push(pState.emit) //shared
       cState.nodeState.effect = null
     }
     else if(cState.source.length) {
@@ -73,11 +74,11 @@ exports.peer = function peer (network, id, log) {
 exports.connection = function connection (network, from, to) {
   network[from].connections[to] = {
     source: [], sink: [], nodeState: states.init(network[from].log.length),
-    id: from, remote: to, log: network[from].log
+    id: from, remote: to,
   }
   network[to].connections[from] = {
     source: [], sink: [], nodeState: states.init(network[to].log.length),
-    id: to, remote: from, log: network[to].log
+    id: to, remote: from,
   }
   return network
 }
@@ -130,36 +131,56 @@ exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
 
   function randomValue(obj) {
     var k = Object.keys(obj)
-    return obj[k[~~(random()*k.length)]]
+    var rk = k[~~(random()*k.length)]
+    return obj[rk]
   }
 
   while(isWaiting()) {
     var pState = randomValue(network)
-    var cState = randomValue(pState.connections)
-    if(cState) {
-      var r = model(pState, cState, random())
-      pState = r[0]
-      cState = r[1]
+    if(pState.emit) {
+      var msg = pState.emit
+      pState.emit = null
+      if(msg.sequence > pState.log.length) {
+        console.log("APPENDED TWICE")
+        pState.log.push(msg)
+  //      console.log('append', JSON.stringify(pState, null, 2), msg)
+        for(var k in pState.connections)
+          pState.connections[k].nodeState = states.appendMessage(pState.connections[k].nodeState, msg)
+      }
+    } else {
+      var cState = randomValue(pState.connections)
+      if(cState) {
+        var r = model(pState, cState, random())
+        pState = r[0]
+        cState = r[1]
 
-      if(cState.nodeState.local.tx == false)
-        throw new Error('transmit should always be true in this test')
+//        if(cState.nodeState.local.tx == false)
+//          throw new Error('transmit should always be true in this test')
+//
+        if(cState.nodeState.error)
+          throw new Error('error state')
 
-      if(cState.nodeState.error)
-        throw new Error('error state')
+        //copy from the sink to the source immediately, since it gets read randomly anyway.
+        if(cState.sink.length)
+          console.log('send', cState.id+'->'+cState.remote, cState.sink)
 
-      //copy from the sink to the source immediately, since it gets read randomly anyway.
-      if(cState.sink.length)
-        console.log('send', cState.id+'->'+cState.remote, cState.sink)
-
-      while(cState.sink.length) {
-        if(cState.sink[0] == null) throw new Error('cannot send null')
-        var data = cState.sink.shift()
-        msglog.push({from: cState.id, to: cState.remote, data: data})
-        network[cState.remote].connections[cState.id].source.push(data)
+        if(isMessage(cState.effect)) {
+          if(pState.emit) throw new Error('something already appening')
+          pState.emit = cState.effect
+          cState.effect = null
+        }
+        while(cState.sink.length) {
+          if(cState.sink[0] == null) throw new Error('cannot send null')
+          var data = cState.sink.shift()
+          msglog.push({from: cState.id, to: cState.remote, data: data})
+          network[cState.remote].connections[cState.id].source.push(data)
+        }
       }
     }
   }
   return network
 }
+
+
 
 
