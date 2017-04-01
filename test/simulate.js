@@ -29,12 +29,12 @@ function run (t, seed) {
 
   t.ok(sim.isConsistent(network), 'Network is consistent')
   //add one more item to A's log
-//  a_log.push({author: 'a', sequence: 4, content: 'LIVE'})
+
   network.A.emit = {author: 'a', sequence: 4, content: 'LIVE'}
 
   t.ok(sim.hasWork(network.A, network.A.connections.B))
   network = sim.evolveNetwork(network, msglog, seed*2)
-  console.log(JSON.stringify(network, null, 2))
+
   t.ok(sim.isConsistent(network))
 }
 
@@ -50,5 +50,7 @@ else
       t.end()
     })
   })(i)
+
+
 
 
