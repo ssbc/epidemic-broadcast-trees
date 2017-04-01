@@ -141,12 +141,13 @@ exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
       var msg = pState.emit
       pState.emit = null
       if(msg.sequence > pState.log.length) {
-        console.log("APPENDED TWICE")
         pState.log.push(msg)
-  //      console.log('append', JSON.stringify(pState, null, 2), msg)
         for(var k in pState.connections)
           pState.connections[k].nodeState = states.appendMessage(pState.connections[k].nodeState, msg)
       }
+      else
+        console.log("APPENDED TWICE")
+
     } else {
       var cState = randomValue(pState.connections)
       if(cState) {
@@ -180,6 +181,8 @@ exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
   }
   return network
 }
+
+
 
 
 
