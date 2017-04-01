@@ -49,7 +49,6 @@ exports.read = function (state) {
     state.local.req = Math.abs(_ready)
     state.remote.tx = _ready >= 0
   }
-
   if(canSend(state)) {
     state.effect = Math.max(state.remote.seq, state.remote.req) + 1
   }
@@ -67,6 +66,7 @@ function isNextRxMessage(state, msg) {
 
 function isNextTxMessage (state, msg) {
   return (
+    !isInitRx(state) &&
     state.local.tx &&
     state.remote.req < msg.sequence &&
     msg.sequence === (Math.max(state.remote.seq, state.remote.req) + 1)
@@ -103,9 +103,10 @@ exports.receiveMessage = function (state, msg) {
     //so that we can handle the next incomming?
     //what if an invalid message arrives? we should abort this receiver...
   }
-  else
+  else {
+    console.log('ERROR MESSAGE', msg, state)
     _state.error = true
-
+  }
   return _state
 }
 
@@ -136,7 +137,6 @@ exports.appendMessage = function (state, msg) {
   if(!isMessage(msg)) throw new Error('appendMessage expects a message!')
   //if this is the msg they need next, make
   var _state = clone(state)
-
   _state.local.seq = msg.sequence
 
   if(state.local.tx) {
@@ -181,5 +181,4 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
-
 
