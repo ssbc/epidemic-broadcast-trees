@@ -15,7 +15,10 @@ function run (t, seed) {
   var network = {}
   network = sim.peer(network, 'A', a_log)
   network = sim.peer(network, 'B', [])
+  network = sim.peer(network, 'C', [])
   network = sim.connection(network, 'A', 'B')
+  network = sim.connection(network, 'B', 'C')
+//  network = sim.connection(network, 'A', 'C')
 
   //initialize
 
@@ -28,13 +31,14 @@ function run (t, seed) {
   }).length, sim.countConnections(network)*2, 'exactly two notes are sent')
 
   t.ok(sim.isConsistent(network), 'Network is consistent')
+
   //add one more item to A's log
-//  a_log.push({author: 'a', sequence: 4, content: 'LIVE'})
-  network.A.emit = {author: 'a', sequence: 4, content: 'LIVE'}
+
+  network.A.emit = {author: 'a', sequence: a_log.length+1, content: 'LIVE'}
 
   t.ok(sim.hasWork(network.A, network.A.connections.B))
   network = sim.evolveNetwork(network, msglog, seed*2)
-  console.log(JSON.stringify(network, null, 2))
+//  console.log(JSON.stringify(network, null, 2))
   t.ok(sim.isConsistent(network))
 }
 
@@ -50,5 +54,4 @@ else
       t.end()
     })
   })(i)
-
 
