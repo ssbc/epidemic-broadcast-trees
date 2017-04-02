@@ -27,29 +27,22 @@ function run (t, seed) {
 
   network = sim.evolveNetwork(network, msglog, seed)
 
-//  t.equal(msglog.filter(function (e) {
-//    return u.isNote(e.data)
-//  }).length, sim.countConnections(network)*2, 'exactly two notes are sent')
-//
-  t.ok(sim.isConsistent(network), 'Network is consistent')
+  if(!sim.isConsistent(network))
+    throw new Error('network not consistent')
 
   //add one more item to A's log
 
   network.A.emit = {author: 'a', sequence: a_log.length+1, content: 'LIVE'}
 
-  t.ok(sim.hasWork(network.A, network.A.connections.B))
   network = sim.evolveNetwork(network, msglog, seed*2)
-  t.ok(sim.isConsistent(network))
-//  console.log(JSON.stringify(network, null, 2))
+  if(!sim.isConsistent(network))
+    throw new Error('network not consistent')
+  //todo: make this a processable event log thing
+  network.A.emit = {author: 'a', sequence: a_log.length+1, content: 'LIVE'}
 
-  //add one more item to A's log
-
-//  network.A.emit = {author: 'a', sequence: a_log.length+1, content: 'LIVE'}
-//
-//  t.ok(sim.hasWork(network.A, network.A.connections.B))
-//  network = sim.evolveNetwork(network, msglog, seed*2)
-//  t.ok(sim.isConsistent(network))
-//
+  network = sim.evolveNetwork(network, msglog, seed*2)
+  if(!sim.isConsistent(network))
+    throw new Error('network not consistent')
 
 }
 
@@ -59,13 +52,16 @@ if(process.argv[2])
     t.end()
   })
 else
-  for(var i = 0; i < 1000; i++) (function (i) {
-    tape('run 3 message test with 2 peers, seed:'+i, function (t) {
+  //running each test is O(Number of tests!)
+  tape('run 3 message test with 2 peers, seeds', function (t) {
+    for(var i = 0; i < 10000; i++) (function (i) {
+      try {
       run(t, i)
-      t.end()
-    })
-  })(i)
-
-
-
+      } catch(err) {
+        console.log('error on seed:'+i)
+        throw err
+      }
+    })(i)
+    t.end()
+  })
 

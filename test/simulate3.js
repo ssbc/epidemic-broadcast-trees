@@ -48,7 +48,7 @@ if(process.argv[2])
     t.end()
   })
 else
-  for(var i = 0; i < 100; i++) (function (i) {
+  for(var i = 0; i < 1000; i++) (function (i) {
     tape('run 3 message test with 2 peers, seed:'+i, function (t) {
       run(t, i)
       t.end()
