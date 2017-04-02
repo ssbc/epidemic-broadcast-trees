@@ -78,12 +78,13 @@ exports.peer = function peer (network, id, log) {
 }
 
 exports.connection = function connection (network, from, to) {
+  var ab = [], ba = []
   network[from].connections[to] = {
-    source: [], sink: [], nodeState: states.init(network[from].log.length),
+    source: ab, sink: ba, nodeState: states.init(network[from].log.length),
     id: from, remote: to,
   }
   network[to].connections[from] = {
-    source: [], sink: [], nodeState: states.init(network[to].log.length),
+    source: ba, sink: ab, nodeState: states.init(network[to].log.length),
     id: to, remote: from,
   }
   return network
@@ -112,13 +113,14 @@ exports.isConsistent = function isConsistent (network) {
   return true
 }
 
-var hasWork = exports.hasWork = function hasWork (pState, cState) {
-  return (
-    pState.emit || cState.source.length ||
-    cState.nodeState.ready != null ||
-    cState.nodeState.effect != null
-  )
-}
+//var hasWork = exports.hasWork = function hasWork (pState, cState) {
+//  return (
+//    pState.emit || cState.source.length ||
+//    cState.nodeState.ready != null ||
+//    cState.nodeState.effect != null
+//  )
+//}
+//
 
 function allEvents (network) {
   var evs = []
@@ -191,13 +193,13 @@ exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
         pState.emit = cState.effect
         cState.effect = null
       }
-      while(cState.sink.length) {
-        if(cState.sink[0] == null) throw new Error('cannot send null')
-        var data = cState.sink.shift()
-        msglog.push({from: cState.id, to: cState.remote, data: data})
-        network[cState.remote].connections[cState.id].source.push(data)
-      }
-
+//      while(cState.sink.length) {
+//        if(cState.sink[0] == null) throw new Error('cannot send null')
+//        var data = cState.sink.shift()
+//        msglog.push({from: cState.id, to: cState.remote, data: data})
+//        network[cState.remote].connections[cState.id].source.push(data)
+//      }
+//
     }
   }
   return network
