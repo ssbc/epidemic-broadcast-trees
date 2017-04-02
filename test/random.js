@@ -35,6 +35,8 @@ function run (t, seed) {
     return rng.random()
   }
 
+  //generate a random network, with 10 nodes, plus 10 extra connections
+  //then send 10 messages over it.
   var M = 10, N = 10, C = 10
 //  var L = 5 + ~~(random()*5)
 
