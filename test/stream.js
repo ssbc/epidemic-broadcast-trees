@@ -17,7 +17,7 @@ function Peer (logs) {
     var states = {}
     for(var k in logs)
       if(k[0] != '_')
-        states[k] = S.init(logs[k].length)
+        states[k] = logs[k].length
 
     var stream = Stream(states, function get (id, seq, cb) {
       cb(null, logs[id][seq - 1])
