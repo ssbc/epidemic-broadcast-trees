@@ -28,12 +28,18 @@ function Next () {
         _fn = fn; fn = null; _fn()
       }
     }
-    else
+    else {
       fn = _fn
+    }
   }
 }
 
-module.exports = function (states, get, append) {
+module.exports = function (seqs, get, append) {
+
+  var states = {}
+  for(var k in seqs)
+    states[k] = S.init(seqs[k])
+
   var next = Next()
   function checkNote (k) {
     if(isNote(states[k].effect)) {
@@ -50,12 +56,18 @@ module.exports = function (states, get, append) {
     sink: function (read) {
       read(null, function cb (err, data) {
         if(isMessage(data)) {
+          if(!states[data.author]) throw new Error('received strange author')
           states[data.author] = S.receiveMessage(states[data.author], data)
           if(isMessage(states[data.author].effect)) {//append this message
             states[data.author].effect = null
-            //append MUST call onAppend before the callback.
+            // *** append MUST call onAppend before the callback ***
+            //for performance, append should verify + queue the append, but not write to database.
+            //also note, there may be other messages which have been received
+            //and we could theirfore do parallel calls to append, but would make this
+            //code quite complex.
             append(data, function (err) {
               read(null, cb)
+              next()
             })
           }
           else
@@ -67,6 +79,8 @@ module.exports = function (states, get, append) {
           var ready = false
 
           for(var k in data) (function (k, seq) {
+            //TEMP, just request back anything they ask for...
+            if(!states[k]) states[k] = S.init(0)
             states[k] = S.receiveNote(states[k], seq)
             if(states[k].ready != null)
               ready = true
@@ -106,6 +120,8 @@ module.exports = function (states, get, append) {
     },
     onAppend: function (msg) {
       var k = msg.author
+      //TMP, call a user provided function to decide how to handle this.
+      if(!states[k]) states[k] = S.init(msg.sequence)
       if(states[k]) {
         states[k] = S.appendMessage(states[k], msg)
         checkNote(k)
