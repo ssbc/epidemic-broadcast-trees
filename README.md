@@ -86,6 +86,16 @@ function createStream(chat) {
 }
 ```
 
+## comparison to plumtree
+
+I had an idea for a gossip protocol that avoided retransmitting messages by putting
+unneeded connections into standby mode (which can be brought back into service when necessary)
+and then was pleasantly surprised to discover it was not a new idea, but had already been described
+in a paper - and there is an implementation of that paper in erlang here: https://github.com/helium/plumtree
+
+There are some small differences, mainly because I want to send messages in order, which makes
+it easy to represent what messages have not been seen using just a incrementing sequence number per feed.
+
 ## todo
 
 * progress signals about how replicated we are (whether we are in sync or not, etc)
