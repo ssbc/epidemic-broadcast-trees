@@ -1,5 +1,5 @@
 var tape = require('tape')
-var Stream = require('../stream')
+var Stream = require('../')
 var S = require('../state')
 var pull = require('pull-stream')
 
