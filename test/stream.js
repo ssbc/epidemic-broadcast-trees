@@ -13,22 +13,28 @@ function Peer (logs) {
       logs._append[i](msg)
   }
 
-  return function () {
+  return function (cb) {
     var states = {}
     for(var k in logs)
       if(k[0] != '_')
         states[k] = logs[k].length
 
-    var stream = Stream(states, function get (id, seq, cb) {
-      cb(null, logs[id][seq - 1])
-    }, function append (msg, cb) {
-      if(logs[msg.author] && msg.sequence == logs[msg.author].length + 1) {
-        logs[msg.author].push(msg)
-        onAppend(msg)
-        cb()
-      }
-      else cb(new Error('could not append'))
-    })
+    var stream = Stream(
+      states,
+      function get (id, seq, cb) {
+        cb(null, logs[id][seq - 1])
+      },
+      function append (msg, cb) {
+        if(logs[msg.author] && msg.sequence == logs[msg.author].length + 1) {
+          logs[msg.author].push(msg)
+          onAppend(msg)
+          cb()
+        }
+        else cb(new Error('could not append'))
+      },
+      console.log,
+      cb
+    )
 
     logs._append.push(stream.onAppend)
 
@@ -177,6 +183,37 @@ tape('three peers, four streams', function (t) {
   t.deepEqual(alice_db, charles_db, 'databases are consistent')
   t.end()
 })
+
+
+tape('source errors', function (t) {
+
+  var create = Peer({alice: alice, bob: []})
+
+  var err = new Error('test error')
+  pull(
+    pull.error(err),
+    create(function (_err) {
+      t.equal(_err, err)
+      t.end()
+    })
+  )
+
+})
+
+tape('sink errors', function (t) {
+
+  var create = Peer({alice: alice, bob: []})
+
+  var err = new Error('test error')
+    create(function (_err) {
+      t.equal(_err, err)
+      t.end()
+    }).source(err, function (_err) {
+      t.equal(_err, err)
+    })
+
+})
+
 
 
 
