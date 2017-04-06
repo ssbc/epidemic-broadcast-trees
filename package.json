@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "deep-equal": "^1.0.1",
+    "obv": "0.0.1",
     "rng": "^0.2.2",
     "tape": "^4.6.3"
   },
