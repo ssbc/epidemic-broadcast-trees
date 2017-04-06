@@ -56,7 +56,7 @@ function createStream(chat) {
 
   //so the vector clock can be
   var vectorClock = {}
-  for(var k in logs)
+  for(var k in chat.logs)
     vectorClock[k] = chat.logs[k].length
 
   //observables are like an event emitter but with a stored value
@@ -80,7 +80,7 @@ function createStream(chat) {
     }
   )
 
-  onAppend(stream.onAppend)
+  chat.onAppend(stream.onAppend)
 
   return stream
 }
