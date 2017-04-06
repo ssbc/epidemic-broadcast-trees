@@ -35,20 +35,23 @@ In this example, we'll use [observables](https://github.com/dominictarr/obv) to 
 `onAppend`  this means we can connect each peer to multiple others and it will work great!
 
 ``` js
+var pull = require('pull-stream')
 var createEbtStream = require('epidemic-broadcast-trees')
 var Obv = require('obv')
 //create a datamodel for a reliable chat room.
-function createChatModel () {
+
+function createChatModel (id, log) {
   //in this example, logs can be a map of arrays,
   var logs = {}
+  logs[id] = log || []
   var onAppend = Obv()
   return {
     logs: logs,
     append: function append (msg) {
-      logs[msg.author].push(msg)
+      (logs[msg.author] = logs[msg.author] || []).push(msg)
       onAppend.set(msg)
     },
-    onAppend: onAppend()
+    onAppend: onAppend
   }
 }
 
@@ -73,8 +76,6 @@ function createStream(chat) {
     },
     //pass append(msg, cb)
     function (msg, cb) {
-      if(msg.sequence !== logs[msg.author].length + 1)
-        return cb(new Error('incorrect position'))
       chat.append(msg)
       cb()
     }
@@ -84,6 +85,23 @@ function createStream(chat) {
 
   return stream
 }
+
+var alice = createChatModel('alice', [])
+var bob = createChatModel('bob')
+
+var as = createStream(alice)
+var bs = createStream(bob)
+
+pull(as, bs, as)
+
+//have bob get ready to receive something
+bob.onAppend(function (msg) {
+  console.log('msg at bob:', msg)
+})
+
+//have alice send a message to bob
+alice.append({author: 'alice', sequence: 1, content: 'hello bob!'})
+
 ```
 
 ## comparison to plumtree
@@ -105,4 +123,7 @@ it easy to represent what messages have not been seen using just a incrementing 
 ## License
 
 MIT
+
+
+
 
