@@ -6,7 +6,8 @@ var Obv = require('obv')
 function createChatModel (id, log) {
   //in this example, logs can be a map of arrays,
   var logs = {}
-  logs[id] = log || []
+  if(id) logs[id] = log || []
+
   var onAppend = Obv()
   return {
     logs: logs,
@@ -33,9 +34,9 @@ function createStream(chat) {
     vectorClock,
     //pass a get(id, seq, cb)
     function (id, seq, cb) {
-      if(!chat.logs[id] || !chat.logs[id][seq])
+      if(!chat.logs[id] || !chat.logs[id][seq-1])
         return cb(new Error('not found'))
-      cb(null, chat.logs[id][seq])
+      cb(null, chat.logs[id][seq-1])
     },
     //pass append(msg, cb)
     function (msg, cb) {
@@ -49,19 +50,27 @@ function createStream(chat) {
   return stream
 }
 
-var alice = createChatModel('alice', [])
-var bob = createChatModel('bob')
+if(!module.parent) {
 
-var as = createStream(alice)
-var bs = createStream(bob)
+  var alice = createChatModel('alice', [])
+  var bob = createChatModel('bob')
 
-pull(as, bs, as)
+  var as = createStream(alice)
+  var bs = createStream(bob)
 
-//have bob get ready to receive something
-bob.onAppend(function (msg) {
-  console.log('msg at bob:', msg)
-})
+  pull(as, bs, as)
 
-//have alice send a message to bob
-alice.append({author: 'alice', sequence: 1, content: 'hello bob!'})
+  //have bob get ready to receive something
+  bob.onAppend(function (msg) {
+    console.log('msg at bob:', msg)
+  })
+
+  //have alice send a message to bob
+  alice.append({author: 'alice', sequence: 1, content: 'hello bob!'})
+
+}
+
+exports.createChatModel = createChatModel
+exports.createStream = createStream
+
 
