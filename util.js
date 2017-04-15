@@ -12,7 +12,7 @@ exports.sort = function (queue) {
 }
 
 exports.isMessage = function (msg) {
-  return msg && Number.isInteger(msg.sequence) && 'string' === typeof msg.author && msg.content
+  return msg && Number.isInteger(msg.sequence) && 'string' === typeof msg.author && msg.content != null
 }
 
 exports.isNote = function (note) {
