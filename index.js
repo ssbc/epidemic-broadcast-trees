@@ -3,20 +3,26 @@ var u = require('./util')
 var isNote = u.isNote
 var isMessage = u.isMessage
 
-function oldest(states) {
-  var min, key
-  for(var k in states) {
-    if(isMessage(states[k].ready)) {
-      if(min == null) {
-        key = k
-      }
-      else if(min > states[k].ready.timestamp) {
-        min = states[k].ready.timestamp
-        key = k
-      }
-    }
+global.T = 0
+
+function oldest(ready, states) {
+  //could do ready.sort but that is O(n*log(n)) (i think?) so faster to iterate
+
+  var min = null
+  for(var i = ready.length - 1; i >= 0; i--) {
+    if(!isMessage(ready[i].ready))
+      ready.splice(i, 1) //this item is not a ready message (any more) remove from queue)
+    else if(min == null)
+      min = i
+    else if (ready[i].ready.timestamp < ready[i].ready.timestamp) min = i
   }
-  return key
+
+  if(min != null) {
+    var state = ready[min]
+    ready.splice(i, 1)
+    return state
+  }
+
 }
 
 function Next () {
@@ -40,41 +46,42 @@ function toEnd(err) {
 
 module.exports = function (seqs, get, append, onChange, callback) {
 
+  var readyMsg = [], readyNote = {}
+
+  function maybeQueue(key, state) {
+    if('string' !== typeof key) throw new Error('key should be string')
+    if('object' !== typeof state)
+      throw new Error('state should be object')
+
+    if(isMessage(state.ready))
+      readyMsg.push(state)
+    else if(isNote(state.ready))
+      readyNote[key] = true
+  }
+
   var states = {}, error
-  for(var k in seqs)
+  for(var k in seqs) {
     states[k] = S.init(seqs[k])
+    states[k].id = k
+  }
 
   var next = Next()
   function checkNote (k) {
     if(isNote(states[k].effect)) {
       get(k, states[k].effect, function (err, msg) {
         if(msg) {
-          states[k] = S.gotMessage(states[k], msg)
+          maybeQueue(k, states[k] = S.gotMessage(states[k], msg))
           if(states[k].ready) next()
         }
       })
     }
   }
+  for(var k in seqs)
+    readyNote[k] = true
+
   var d = {recv: 0, send: 0, sync: 0}
   function progress () {
-    var recv = 0, send = 0, sync = 0, diff = 0
-    for(var k in states) {
-      var state = states[k]
-      //factor into receive state
-      if(state.remote.seq !== state.local.seq) {
-        sync ++ //out of sync
-//        diff += state.remote.req < state.local.seq ? state.local.seq - state.remote.leq : state.remote.seq - state.local.seq
-      }
-      if(state.remote.tx) {
-        recv += state.remote.req > state.local.seq ? state.remote.req - state.local.seq : 0
-      }
-      if(state.local.tx)
-        send += state.local.seq > state.remote.req ? state.local.seq - state.remote.req : 0
-    }
-    if(recv !== d.recv || send != d.send) {
-      d.recv = recv; d.send = send; d.sync = sync; d.diff = diff
-      onChange && onChange(d)
-    }
+    //calculating progress every event was significantly slowing things down.
   }
 
   var stream
@@ -89,7 +96,7 @@ module.exports = function (seqs, get, append, onChange, callback) {
 
         if(isMessage(data)) {
           if(!states[data.author]) throw new Error('received strange author')
-          states[data.author] = S.receiveMessage(states[data.author], data)
+          maybeQueue(data.author, states[data.author] = S.receiveMessage(states[data.author], data))
           if(isMessage(states[data.author].effect)) {//append this message
             states[data.author].effect = null
             // *** append MUST call onAppend before the callback ***
@@ -111,14 +118,14 @@ module.exports = function (seqs, get, append, onChange, callback) {
         else {
           var ready = false
 
-          for(var k in data) (function (k, seq) {
+          for(var k in data) {
             //TEMP, just request back anything they ask for...
             if(!states[k]) states[k] = S.init(0)
-            states[k] = S.receiveNote(states[k], seq)
+            maybeQueue(k, states[k] = S.receiveNote(states[k], data[k]))
             if(states[k].ready != null)
               ready = true
             checkNote(k)
-          })(k, data[k])
+          }
 
           if(ready) next()
           progress()
@@ -140,17 +147,18 @@ module.exports = function (seqs, get, append, onChange, callback) {
         //this happens when the client 
         if(error) return cb(error)
 
-        var key
-        if(key = oldest(states)) {
-          var msg = states[key].ready
-          states[key] = S.read(states[key])
-          checkNote(key)
+        var state
+        if(readyMsg.length && (state = oldest(readyMsg)) && isMessage(state.ready)) {
+          var msg = state.ready
+          maybeQueue(msg.author, state = S.read(state))
+          checkNote(msg.author)
           progress()
           cb(null, msg)
         }
         else {
           var notes = {}, n = 0
-          for(var k in states) {
+
+          for(k in readyNote) {
             if(isNote(states[k].ready)) {
               n ++
               notes[k] = states[k].ready
@@ -158,6 +166,9 @@ module.exports = function (seqs, get, append, onChange, callback) {
               checkNote(k)
             }
           }
+
+          readyNote = {}
+
           progress()
           if(n) cb(null, notes)
           else next(read)
@@ -167,16 +178,13 @@ module.exports = function (seqs, get, append, onChange, callback) {
     onAppend: function (msg) {
       var k = msg.author
       //TMP, call a user provided function to decide how to handle this.
-      if(!states[k]) states[k] = S.init(msg.sequence)
+      if(!states[k]) maybeQueue(k, states[k] = S.init(msg.sequence))
       if(states[k]) {
-        states[k] = S.appendMessage(states[k], msg)
+        maybeQueue(k, states[k] = S.appendMessage(states[k], msg))
         checkNote(k)
         next()
       }
     }
   }
 }
-
-
-
 
