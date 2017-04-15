@@ -3,8 +3,6 @@ var u = require('./util')
 var isNote = u.isNote
 var isMessage = u.isMessage
 
-global.T = 0
-
 function oldest(ready, states) {
   //could do ready.sort but that is O(n*log(n)) (i think?) so faster to iterate
 

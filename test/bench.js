@@ -91,7 +91,7 @@ tape('simple', function (t) {
   //because everything is sync, it should be complete already.
 
   var seconds = ((Date.now() - start)/1000)
-  console.log(c, seconds, c / seconds, T)
+  console.log(c, seconds, c / seconds)
 
   t.deepEqual(bob.logs, alice.logs)
   t.end()
