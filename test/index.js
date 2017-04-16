@@ -115,7 +115,7 @@ tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (
   //message is appended, as if it was created locally,
   //or received from another peer.
   state = states.appendMessage(state, msg)
-
+  t.equal(state.effect, null)
   t.deepEqual(state, {
     local: {seq: 3, req: 2, tx: true},
     remote: {seq: null, req: 2, tx: true},
@@ -123,6 +123,7 @@ tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (
     effect: null
   })
 
+//  return t.end()
   //the message is sent.
   state = states.read(state)
 
@@ -149,4 +150,6 @@ tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (
 
   t.end()
 })
+
+
 
