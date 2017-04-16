@@ -58,10 +58,8 @@ module.exports = function (seqs, get, append, onChange, callback) {
   }
 
   var states = {}, error
-  for(var k in seqs) {
+  for(var k in seqs)
     states[k] = S.init(seqs[k])
-    states[k].id = k
-  }
 
   var next = Next()
   function checkNote (k) {
@@ -80,6 +78,7 @@ module.exports = function (seqs, get, append, onChange, callback) {
   var d = {recv: 0, send: 0, sync: 0}
   function progress () {
     //calculating progress every event was significantly slowing things down.
+
   }
 
   var stream
