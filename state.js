@@ -42,7 +42,7 @@ exports.init = function (local) {
 exports.read = function (state) {
   if(state.ready == null) return state
   var _ready = state.ready
-  state.ready =  null
+  state.ready = null
   if(isMessage(_ready)) {
     if(state.remote.seq != null && Math.max(state.remote.seq, state.remote.req) +1 !== _ready.sequence) {
       throw new Error('out of order!')
@@ -81,39 +81,23 @@ exports.receiveMessage = function (state, msg) {
   if(!isMessage(msg)) throw new Error('expected a Message!')
   var _state = clone(state)
 
-//  if(state.remote.tx === false) {
-//    console.log('received msg, when !tx')
-//    console.log(msg, state)
-//  }
-//
   _state.remote.req = Math.max(state.remote.req || 0, msg.sequence)
+  //not the same^
   _state.remote.seq = Math.max(state.remote.seq || 0, msg.sequence)
-
-  if(state.remote.seq > msg.sequence) {
-//    console.log('receiveMessage', state, msg)
-//    throw new Error('remote sent out of order')
-  }
-  //we may have sent something to them
- // _state.remote.seq = Math.max(msg.sequence, _state.remote.seq)
 
   if(state.remote.tx == null)
     throw new Error('we received a message, when we where waiting for remote to send initial request')
 
   var seq = state.local.seq
   if(isMessage(state.ready)) {
-    if(state.ready.sequence <= msg.sequence) {
+    if(state.ready.sequence <= msg.sequence)
       state.ready = null
-      //throw new Error('about to send message we just received')
-    }
   }
   if(isOldMessage(state, msg)) {
     //we already know this, please shut up!
-    if(state.remote.tx) {
-      //let read move us out of tx mode,
-      //incase this note is overridden.
-      //_state.remote.tx = false
+    //let read move us out of tx mode,
+    if(state.remote.tx)
       _state.ready = -seq
-    }
   }
   else if(isNextRxMessage(state, msg)) {
     //since we now know they are ahead, stop transmitting to them
@@ -122,9 +106,6 @@ exports.receiveMessage = function (state, msg) {
     _state.effect = msg
     if(state.remote.tx == false)
       state.ready = state.local.seq
-    //update local seq, instead of calling to append?
-    //so that we can handle the next incomming?
-    //what if an invalid message arrives? we should abort this receiver...
   }
   else {
     //this means something went really wrong
@@ -140,10 +121,6 @@ exports.receiveNote = function (state, note) {
   var requested = note >= 0
   var _seq = Math.max(Math.abs(note), state.remote.seq)
 
-//  if(state.local.tx != requested) {
-//    console.log('enable tx')
-//  }
-//
   _state.local.tx = requested
   _state.remote.req = Math.max(_seq, _state.remote.req)
 
@@ -193,16 +170,11 @@ exports.appendMessage = function (state, msg) {
 
       if(state.local.seq > Math.max(state.remote.req,state.remote.seq))
         state.effect = Math.max(state.remote.req,state.remote.seq) + 1
-//    if(msg.sequence > state.remote.seq) {
-//      //console.log('can send!!', msg, state)
-//      state.ready = state.remote.seq + 1
-//    }
     }
   }
   else if(!state.local.tx) {
     //unless we know they are up to this, send a note
     if(msg.sequence > state.remote.req) {
-      //console.log('APPEND_TURN_OFF_R_TX', msg, state)
       _state.ready = state.remote.tx ? msg.sequence : -msg.sequence //SEND NOTE
     }
     else if(isNote(state.ready) && state.ready > 0)
@@ -220,20 +192,10 @@ exports.gotMessage = function (state, msg) {
   if (isNextTxMessage(state, msg)) {
     _state.ready = msg
   }
-  else {
-    //do nothing, it's an old message, so send no notes.
-    //we should only get here is we triggered a `get` effect
-    //but then changed state before it completed.
-    ;
-  }
-  if(!state.local.tx) //do nothing
-  //if we are not in sending state, just stop.
-  //otherwise, the next retrival will be triggered by READ
-  ;
+  //if it's not the next message
+  //we must have changed state while retriving this message
+  //anyway, just get on with things
   return _state
 }
-
-
-
 
 
