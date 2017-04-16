@@ -239,6 +239,45 @@ function createConnections (network, list) {
   return network
 }
 
+
+var letters = 'abcdefghijklmnopqrstuzwxyz'.toUpperCase()
+//create random network with N nodes and E edges
+exports.createRandomNetwork = function createRandomNetwork(N, E, seed) {
+
+  if(E < N -1) throw new Error(
+    'not enough edges:'+E+
+    ' to connect a network with:'+N +' nodes. '+
+    'At least '+N-1+' are required.'
+  )
+
+  var rng = new RNG.MT(seed)
+
+  function random() {
+    return rng.random()
+  }
+  var network = {}
+  network = exports.peer(network, 'A')
+
+  //create N-1 more peers
+  //connect them randomly (but gaurantee a connected graph)
+  for(var i = 1; i < N; i++) {
+    var me = letters[i]
+    network = exports.peer(network, me, [])
+    //at least one connection to a peer currently in the network, gaurantees a connected network.
+    network = exports.connection(network, me, letters[~~((i-1)*random())])
+  }
+
+  for(var i = 0; i < E-N; i++) {
+    var me = letters[i%N]
+    var other
+    while(me == (other = letters[~~(random()*N)]))
+      ;
+    network = exports.connection(network, me, other)
+  }
+
+  return network
+}
+
 exports.createSimulation = function (M, N, C) {
   var network = {}
   var a_log =  createLogs(M)
@@ -248,11 +287,11 @@ exports.createSimulation = function (M, N, C) {
 }
 
 //run a test with M messages over N peers, returning 
-exports.basic = function (M,N,C) {
+exports.basic = function (createNetwork) {
   return function (t, seed) {
     var msglog = []
 
-    var network = exports.createSimulation(M,N,C)
+    var network = createNetwork(seed)
 
     network = exports.evolveNetwork(network, msglog, seed)
 
@@ -277,5 +316,24 @@ exports.basic = function (M,N,C) {
   }
 }
 
+function print_network (network) {
+  for(var k in network) {
+    var s = k + ': '
+    for(var j in network) {
+      s += k == j ? ' ' : network[k].connections[j] ? j : '.'
+    }
+    console.log(s)
+  }
+}
 
+function isConnected (network) {
+  var reach = {}
+  ;(function search (k) {
+    reach[k] = true
+    for(var j in network[k].connections)
+      if(!reach[j]) search(j)
+  }(Object.keys(network)[0]))
+
+  return Object.keys(network).length === Object.keys(reach).length
+}
 
