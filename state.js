@@ -181,14 +181,14 @@ exports.appendMessage = function (state, msg) {
       //if it's back to even, we don't need to send a message, but if we are not
       //then the message has meaning.
       //if(state.remote.tx)
-//      _state.ready = msg.sequence === Math.max(state.remote.seq, state.remote.req) ? null : msg.sequence
+
       if(state.local.req != null) {
         _state.ready = null
         if(_state.local.seq > Math.max(state.remote.seq, state.remote.req))
           _state.effect = Math.max(state.remote.seq, state.remote.req) + 1
       }
     }
-    else if(!isMessage(_state.ready))
+    else if(!isMessage(_state.ready)) {
       _state.ready = null
 
       if(state.local.seq > Math.max(state.remote.req,state.remote.seq))
@@ -197,6 +197,7 @@ exports.appendMessage = function (state, msg) {
 //      //console.log('can send!!', msg, state)
 //      state.ready = state.remote.seq + 1
 //    }
+    }
   }
   else if(!state.local.tx) {
     //unless we know they are up to this, send a note
@@ -231,6 +232,7 @@ exports.gotMessage = function (state, msg) {
   ;
   return _state
 }
+
 
 
 
