@@ -70,7 +70,7 @@ tape('simple', function (t) {
   var alice = ex.createChatModel()
   var bob = ex.createChatModel()
 
-  init(alice, 1000, 10000)
+  init(alice, 1000, 100000)
 
   var as = ex.createStream(alice)
   var bs = ex.createStream(bob)
