@@ -4,6 +4,5 @@ var sim = require('../simulate')
 
 //state is {source, sink, nodeState, log, old_length}
 
-sim.runner(process.argv[2], sim.basic(3,3,'AB,BC,CA'))
-
+sim.runner(process.argv[2], sim.basic(3,3,'AB,AC'))
 

@@ -78,6 +78,8 @@ exports.peer = function peer (network, id, log) {
 }
 
 exports.connection = function connection (network, from, to) {
+  if(!network[from]) throw new Error('from peer:'+ from + ' does not exist')
+  if(!network[to]) throw new Error('from peer:'+ to + ' does not exist')
   var ab = [], ba = []
   network[from].connections[to] = {
     source: ab, sink: ba, nodeState: states.init(network[from].log.length),
@@ -113,26 +115,12 @@ exports.isConsistent = function isConsistent (network) {
   return true
 }
 
-//var hasWork = exports.hasWork = function hasWork (pState, cState) {
-//  return (
-//    pState.emit || cState.source.length ||
-//    cState.nodeState.ready != null ||
-//    cState.nodeState.effect != null
-//  )
-//}
-//
-
 function allEvents (network) {
   var evs = []
   for(var k in network)
     evs = evs.concat(events(network[k]))
   return evs
 }
-
-//var createHash = require('crypto').createHash
-//function hash (net) {
-//  return createHash('sha256').update(JSON.stringify(net)).digest('hex').substring(0, 16)
-//}
 
 exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
   var eventlog = []
@@ -193,15 +181,101 @@ exports.evolveNetwork = function evolveNetwork (network, msglog, seed) {
         pState.emit = cState.effect
         cState.effect = null
       }
-//      while(cState.sink.length) {
-//        if(cState.sink[0] == null) throw new Error('cannot send null')
-//        var data = cState.sink.shift()
-//        msglog.push({from: cState.id, to: cState.remote, data: data})
-//        network[cState.remote].connections[cState.id].source.push(data)
-//      }
-//
     }
   }
   return network
 }
+
+
+exports.runner = function (seed, run) {
+  var tape = require('tape')
+  var max = 1000
+
+  if(seed)
+    tape('run 3 message test with 2 peers, seed:'+ (+seed), function (t) {
+      run(t, +seed)
+      t.end()
+    })
+  else
+    //running each test is O(Number of tests!)
+    tape('run 3 message test with 3 peers, seeds'+0+'-'+max, function (t) {
+      for(var i = 0; i < max; i++) (function (i) {
+        if(!(i%100)) console.log('seed:'+i)
+        try {
+        run(t, i)
+        } catch(err) {
+          console.log('error on seed:'+i)
+          throw err
+        }
+      })(i)
+      t.end()
+    })
+
+}
+
+//test 3 peers fully connected, so that some messages get sent twice
+//these connections should get turned off.
+
+function createLogs(n) {
+  var log = []
+  for(var i = 0; i < n; i++)
+    log.push({author: 'a', sequence: i+1, content: 'hi:'+i.toString(36)})
+  return log
+}
+
+function createPeers(network, N) {
+  for(var i = 0; i < N; i++) {
+    var id = String.fromCharCode('A'.charCodeAt(0) + i)
+    network = exports.peer(network, id, [])
+  }
+  return network
+}
+
+function createConnections (network, list) {
+  list.split(',').map(function (ab) {
+    if(ab)
+      network = exports.connection(network, ab[0], ab[1])
+  })
+  return network
+}
+
+exports.createSimulation = function (M, N, C) {
+  var network = {}
+  var a_log =  createLogs(M)
+  network = createPeers(network, N)
+  network.A.log = a_log //first peer is always alice
+  return createConnections(network, C)
+}
+
+//run a test with M messages over N peers, returning 
+exports.basic = function (M,N,C) {
+  return function (t, seed) {
+    var msglog = []
+
+    var network = exports.createSimulation(M,N,C)
+
+    network = exports.evolveNetwork(network, msglog, seed)
+
+    if(!exports.isConsistent(network))
+      throw new Error('network not consistent')
+
+    //add one more item to A's log
+
+    network.A.emit = {author: 'a', sequence: network.A.log.length+1, content: 'LIVE'}
+
+    network = exports.evolveNetwork(network, msglog, seed*2)
+    if(!exports.isConsistent(network))
+      throw new Error('network not consistent')
+    //todo: make this a processable event log thing
+    network.A.emit = {author: 'a', sequence: network.A.log.length+1, content: 'LIVE'}
+
+    network = exports.evolveNetwork(network, msglog, seed*2)
+    if(!exports.isConsistent(network))
+      throw new Error('network not consistent')
+
+    return msglog
+  }
+}
+
+
 
