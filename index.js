@@ -2,6 +2,7 @@ var S = require('./state')
 var u = require('./util')
 var isNote = u.isNote
 var isMessage = u.isMessage
+var progress = require('./progress')
 
 function oldest(ready, states) {
   //could do ready.sort but that is O(n*log(n)) (i think?) so faster to iterate
@@ -45,6 +46,7 @@ function toEnd(err) {
 module.exports = function (seqs, get, append, onChange, callback) {
 
   var readyMsg = [], readyNote = {}
+  onChange = onChange || function () {}
 
   function maybeQueue(key, state) {
     if('string' !== typeof key) throw new Error('key should be string')
@@ -75,12 +77,6 @@ module.exports = function (seqs, get, append, onChange, callback) {
   for(var k in seqs)
     readyNote[k] = true
 
-  var d = {recv: 0, send: 0, sync: 0}
-  function progress () {
-    //calculating progress every event was significantly slowing things down.
-
-  }
-
   var stream
   return stream = {
     sink: function (read) {
@@ -102,7 +98,7 @@ module.exports = function (seqs, get, append, onChange, callback) {
             //and we could theirfore do parallel calls to append, but would make this
             //code quite complex.
             append(data, function (err) {
-              progress()
+              onChange()
               read(null, cb)
               next()
             })
@@ -125,7 +121,7 @@ module.exports = function (seqs, get, append, onChange, callback) {
           }
 
           if(ready) next()
-          progress()
+          onChange()
           read(null, cb)
         }
       })
@@ -149,7 +145,7 @@ module.exports = function (seqs, get, append, onChange, callback) {
           var msg = state.ready
           maybeQueue(msg.author, state = S.read(state))
           checkNote(msg.author)
-          progress()
+          onChange()
           cb(null, msg)
         }
         else {
@@ -166,11 +162,14 @@ module.exports = function (seqs, get, append, onChange, callback) {
 
           readyNote = {}
 
-          progress()
+          onChange()
           if(n) cb(null, notes)
           else next(read)
         }
       })()
+    },
+    progress: function () {
+      return progress(states)
     },
     onAppend: function (msg) {
       var k = msg.author
