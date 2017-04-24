@@ -77,6 +77,9 @@ tape('two peers', function (t) {
   delete bob_db._append
   console.log(alice_db)
   console.log(bob_db)
+
+  t.deepEqual(alice_stream.progress().sync, bob_stream.progress().sync)
+
   t.deepEqual(alice_db, bob_db, 'databases are consistent')
   t.end()
 })
@@ -213,7 +216,4 @@ tape('sink errors', function (t) {
     })
 
 })
-
-
-
 
