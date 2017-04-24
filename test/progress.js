@@ -158,3 +158,89 @@ tape('receive a message from a peer ahead of us', function (t) {
 })
 
 
+tape('progress when received negative note', function (t) {
+
+  var states = {alice: S.init(10)}
+  states.alice = S.receiveNote(states.alice, -8)
+  states.alice = S.read(states.alice)
+  console.log(states)
+  console.log(progress(states))
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 0,
+    send: 0, recv: 0, total: 0,
+    feeds: 0
+  })
+  t.end()
+})
+
+
+tape('progress after we send negative note', function (t) {
+
+  var states = {alice: S.init(9)}
+  states.alice = S.receiveNote(states.alice, 9)
+  states.alice = S.read(states.alice)
+  //we are currently in sync
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 1,
+    send: 0, recv: 0, total: 0,
+    feeds: 1
+  })
+  var msg = {
+    author: 'alice', sequence: 10, content: 'hello'
+  }
+  states.alice = S.appendMessage(states.alice, msg)
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 0,
+    send: 1, recv: 0, total: 1,
+    feeds: 1
+  })
+  //and send the message
+  states.alice = S.read(states.alice)
+  console.log(states)
+  console.log(progress(states))
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 1,
+    send: 0, recv: 0, total: 1,
+    feeds: 1
+  })
+
+  //but then we receive the same message!
+  states.alice = S.receiveMessage(states.alice, msg)
+  //we'll make a 'no thankyou note'
+  states.alice = S.read(states.alice)
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 1,
+    send: 0, recv: 0,
+    //total goes to zero because we know they are up to us.
+    total: 0,
+    feeds: 1
+  })
+
+  states.alice = S.appendMessage(states.alice, {
+    author: 'alice', sequence: 11, content: 'hello'
+  })
+
+  //now we are one ahead, but we will send it.
+
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 0,
+    send: 1, recv: 0,
+    //total goes to zero because we know they are up to us.
+    total: 1,
+    feeds: 1
+  })
+
+  states.alice = S.read(states.alice)
+
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 1,
+    send: 0, recv: 0,
+    //total goes to zero because we know they are up to us.
+    total: 1,
+    feeds: 1
+  })
+
+
+  t.end()
+})
+
