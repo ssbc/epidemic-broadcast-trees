@@ -104,6 +104,57 @@ alice.append({author: 'alice', sequence: 1, content: 'hello bob!'})
 
 ```
 
+## api
+
+``` js
+var createStream = require('epidemic-broadcast-trees')
+
+var stream = createStream(seqs, get, append, onChange, callback)
+```
+### createStream(seqs, get, append, onChange, callback) => stream
+
+* `seqs` is an object that maps `id` to `sequence`.
+this represents who you want to follow initially.
+`{<id>:<sequence>,..}`
+* `get(id, seq, cb)` is an async function that gets the message by a feed at a particular sequence number.
+* `append(msg, callback)` an async function that appends a single message to the log.
+* `onChange` a function that is called each time the state changes. This is useful to call `stream.progress()`
+* `callback(err)` is called when the replication connection ends.
+
+### stream
+
+A duplex pull-stream returned by the `createStream` method, it
+also has a few extra methods.
+
+#### `stream.onAppend(msg)`
+sync function that _must_ be called when a message is added to the local database.
+
+#### `stream.progress()`
+
+returns an object which represents the current replication progress.
+
+an example object output looks like this, all values are integers >= 0.
+
+``` js
+{
+  feeds: N, //number of feeds being replicated.
+  sync: N, //number of feeds that are fully synchronised.
+  send: N, //number of messages that you need to send.
+  recv: N, //number of messages that you expect to receive.
+  total: N, //number of messages that need to be sent or received to become in sync.
+  unknown: N, //number of feeds which are at unknown progress, because one party has not given a known sequence from this feed yet.
+}
+```
+
+to make a progress bar that move smoothly across and represents
+the state of the current session, you can use
+
+``` js
+var prog = stream.progress()
+//changes from 0 to 1 when fully replicated.
+console.log(1 - ((prog.send+prog.recv) / prog.total))
+```
+
 ## comparison to plumtree
 
 I had an idea for a gossip protocol that avoided retransmitting messages by putting
@@ -123,7 +174,5 @@ it easy to represent what messages have not been seen using just a incrementing 
 ## License
 
 MIT
-
-
 
 
