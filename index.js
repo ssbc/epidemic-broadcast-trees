@@ -46,7 +46,9 @@ function toEnd(err) {
 module.exports = function (seqs, get, append, onChange, callback) {
 
   var readyMsg = [], readyNote = {}
-  onChange = onChange || function () {}
+  onChange = onChange || require('./bounce')(function () {
+    console.log(progress(states))
+  }, 1000)
 
   function maybeQueue(key, state) {
     if('string' !== typeof key) throw new Error('key should be string')
