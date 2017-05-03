@@ -167,12 +167,12 @@ it easy to represent what messages have not been seen using just a incrementing 
 
 ## todo
 
-* progress signals about how replicated we are (whether we are in sync or not, etc)
 * call a user function to decide whether we want to replicate a given feed (say, for blocking bad pers)
 * handle models where it's okay to have gaps in a log (as with classic [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
 
 ## License
 
 MIT
+
 
 
