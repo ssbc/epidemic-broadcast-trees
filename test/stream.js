@@ -20,7 +20,6 @@ function Peer (logs) {
         states[k] = logs[k].length
 
     var stream = Stream(
-      states,
       function get (id, seq, cb) {
         cb(null, logs[id][seq - 1])
       },
@@ -31,10 +30,12 @@ function Peer (logs) {
           cb()
         }
         else cb(new Error('could not append'))
+      }
+    ) ({
+        seqs: states,
+        onChange: console.log,
       },
-      console.log,
-      cb
-    )
+      cb)
 
     logs._append.push(stream.onAppend)
 
@@ -216,4 +217,7 @@ tape('sink errors', function (t) {
     })
 
 })
+
+
+
 
