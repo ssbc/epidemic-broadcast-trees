@@ -50,6 +50,11 @@ module.exports = function (seqs, get, append, onChange, callback) {
     console.log(progress(states))
   }, 1000)
 
+  //called if this feed is has not been requested
+  function onRequest (id, seq) {
+    stream.request(id, 0)
+  }
+
   function maybeQueue(key, state) {
     if('string' !== typeof key) throw new Error('key should be string')
     if('object' !== typeof state)
@@ -62,8 +67,6 @@ module.exports = function (seqs, get, append, onChange, callback) {
   }
 
   var states = {}, error
-  for(var k in seqs)
-    states[k] = S.init(seqs[k])
 
   var next = Next()
   function checkNote (k) {
@@ -76,11 +79,8 @@ module.exports = function (seqs, get, append, onChange, callback) {
       })
     }
   }
-  for(var k in seqs)
-    readyNote[k] = true
 
-  var stream
-  return stream = {
+  var stream = {
     sink: function (read) {
       read(null, function cb (err, data) {
         //handle errors and aborts
@@ -114,8 +114,11 @@ module.exports = function (seqs, get, append, onChange, callback) {
           var ready = false
 
           for(var k in data) {
-            //TEMP, just request back anything they ask for...
-            if(!states[k]) states[k] = S.init(0)
+            //if we havn't requested this yet, see if we want it.
+            //if we _don't want it_ we should say, otherwise
+            //they'll ask us again next time.
+            if(!states[k]) onRequest(k, data[k])
+
             maybeQueue(k, states[k] = S.receiveNote(states[k], data[k]))
             if(states[k].ready != null)
               ready = true
@@ -182,7 +185,26 @@ module.exports = function (seqs, get, append, onChange, callback) {
         checkNote(k)
         next()
       }
+    },
+    request: function (id, seq) {
+      if(!states[id]) {
+        states[id] = S.init(seq)
+        readyNote[id] = true
+      }
     }
   }
+
+  for(var k in seqs)
+    stream.request(k, seqs[k])
+
+  return stream
+
 }
+
+
+
+
+
+
+
 
