@@ -2,9 +2,9 @@
 //been called within interval, and if it's called again within
 //
 module.exports = function (fn, interval) {
-  var _ts = 0
+  var _ts = 0, timer
   function go () {
-    clearTimeout(timeout);
+    clearTimeout(timer);
     timeout = null;
     _ts = Date.now();
     fn()
@@ -13,8 +13,8 @@ module.exports = function (fn, interval) {
   return function () {
     var diff = Date.now() - _ts
     if(diff > interval) go()
-    else if(!timeout) {
-      timeout = setTimeout(go, interval - diff)
+    else if(!timer) {
+      timer = setTimeout(go, interval - diff)
     }
   }
 }
