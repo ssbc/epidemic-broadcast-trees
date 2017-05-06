@@ -135,7 +135,7 @@ tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (
   t.deepEqual(state, {
     local: {seq: 3, req: 3, tx: true},
     remote: {seq: 3, req: 3, tx: true},
-    ready: -msg.sequence,
+    ready: -(msg.sequence+1), //XXX
     effect: null
   })
 
@@ -151,5 +151,53 @@ tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (
   t.end()
 })
 
+
+tape('init, receiveNote-1, never send', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+
+  state = states.read(state)
+  t.equal(state.effect, null, 'do not know remote state, so do nothing')
+
+  state = states.receiveNote(state, -1)
+  console.log(state)
+  t.equal(state.effect, null, 'remote asked for no send')
+
+  state = states.appendMessage(state, msg)
+
+  t.equal(state.effect, null, 'remote asked for no send')
+  t.equal(state.ready, null, 'remote asked for no send')
+
+  t.end()
+})
+
+
+
+tape('init, receiveNote-1, never send', function (t) {
+  var state = states.init(2)
+  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+
+  state = states.receiveNote(state, -1)
+  state = states.read(state)
+  t.equal(state.effect, null, 'do not know remote state, so do nothing')
+
+  console.log(state)
+  t.equal(state.effect, null, 'remote asked for no send')
+
+  state = states.appendMessage(state, msg)
+
+  t.equal(state.effect, null, 'remote asked for no send')
+  t.equal(state.ready, null, 'remote asked for no send')
+
+  t.end()
+})
+
+tape('init-1', function (t) {
+  var state = states.init(-1)
+  t.equal(state.ready, -1)
+  state = states.read(state)
+  t.equal(state.local.req, 0)
+  t.end()
+})
 
 

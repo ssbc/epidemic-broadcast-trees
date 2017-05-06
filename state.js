@@ -16,6 +16,11 @@ function canSend(state) {
     state.local.seq > Math.max(state.remote.seq, state.remote.req)  && state.local.tx
 }
 
+function toSeq (n) {
+  //return Math.abs(n)
+  return n < 0 ? ~n : n
+}
+
 //actually, want to be able to initialize this in receive mode or not.
 exports.init = function (local) {
   if(!Number.isInteger(local))
@@ -50,7 +55,7 @@ exports.read = function (state) {
     state.remote.seq = _ready.sequence
     state.local.req = Math.max(state.local.req, _ready.sequence)
   } else {
-    state.local.req = Math.abs(_ready)
+    state.local.req = toSeq(_ready)
     state.remote.tx = _ready >= 0
   }
   if(canSend(state)) {
@@ -76,7 +81,6 @@ function isNextTxMessage (state, msg) {
   )
 }
 
-
 exports.receiveMessage = function (state, msg) {
   if(!isMessage(msg)) throw new Error('expected a Message!')
   var _state = clone(state)
@@ -97,7 +101,7 @@ exports.receiveMessage = function (state, msg) {
     //we already know this, please shut up!
     //let read move us out of tx mode,
     if(state.remote.tx)
-      _state.ready = -seq
+      _state.ready = -(seq + 1)
   }
   else if(isNextRxMessage(state, msg)) {
     //since we now know they are ahead, stop transmitting to them
@@ -119,7 +123,7 @@ exports.receiveNote = function (state, note) {
   var _state = clone(state)
   var seq = state.local.seq
   var requested = note >= 0
-  var _seq = Math.max(Math.abs(note), state.remote.seq)
+  var _seq = Math.max(toSeq(note), state.remote.seq)
 
   _state.local.tx = requested
   _state.remote.req = Math.max(_seq, _state.remote.req)
@@ -173,9 +177,10 @@ exports.appendMessage = function (state, msg) {
     }
   }
   else if(!state.local.tx) {
-    //unless we know they are up to this, send a note
-    if(msg.sequence > state.remote.req) {
-      _state.ready = state.remote.tx ? msg.sequence : -msg.sequence //SEND NOTE
+    //if we don't know they are up to this, and they havn't
+    //asked us to not send anything (-1) then send a note.
+    if(msg.sequence > state.remote.req && state.remote.req != 0) {
+      _state.ready = state.remote.tx ? msg.sequence : -(msg.sequence+1) //SEND NOTE
     }
     else if(isNote(state.ready) && state.ready > 0)
       state.ready = msg.sequence //UPDATE NOTE
@@ -197,5 +202,4 @@ exports.gotMessage = function (state, msg) {
   //anyway, just get on with things
   return _state
 }
-
 
