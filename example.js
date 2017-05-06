@@ -31,7 +31,6 @@ function createStream(chat) {
 
 
   var stream = createEbtStream(
-    vectorClock,
     //pass a get(id, seq, cb)
     function (id, seq, cb) {
       if(!chat.logs[id] || !chat.logs[id][seq-1])
@@ -43,7 +42,9 @@ function createStream(chat) {
       chat.append(msg)
       cb()
     }
-  )
+  ) ({
+    seqs: vectorClock,
+  })
 
   chat.onAppend(stream.onAppend)
 
@@ -72,5 +73,7 @@ if(!module.parent) {
 
 exports.createChatModel = createChatModel
 exports.createStream = createStream
+
+
 
 
