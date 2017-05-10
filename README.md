@@ -43,7 +43,8 @@ var Obv = require('obv')
 function createChatModel (id, log) {
   //in this example, logs can be a map of arrays,
   var logs = {}
-  logs[id] = log || []
+  if(id) logs[id] = log || []
+
   var onAppend = Obv()
   return {
     logs: logs,
@@ -67,19 +68,20 @@ function createStream(chat) {
 
 
   var stream = createEbtStream(
-    vectorClock,
     //pass a get(id, seq, cb)
     function (id, seq, cb) {
-      if(!chat.logs[id] || !chat.logs[id][seq])
+      if(!chat.logs[id] || !chat.logs[id][seq-1])
         return cb(new Error('not found'))
-      cb(null, chat.logs[id][seq])
+      cb(null, chat.logs[id][seq-1])
     },
     //pass append(msg, cb)
     function (msg, cb) {
       chat.append(msg)
       cb()
     }
-  )
+  ) ({
+    seqs: vectorClock,
+  })
 
   chat.onAppend(stream.onAppend)
 
