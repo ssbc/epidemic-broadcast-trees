@@ -5,7 +5,7 @@ var pull = require('pull-stream')
 
 
 
-function Peer (logs) {
+function Peer (logs, onRequest) {
   logs._append = logs._append || []
 
   function onAppend (msg) {
@@ -34,6 +34,7 @@ function Peer (logs) {
     ) ({
         seqs: states,
         onChange: console.log,
+        onRequest: onRequest
       },
       cb)
 
@@ -218,6 +219,104 @@ tape('sink errors', function (t) {
 
 })
 
+tape('stream when one peer does not follow', function (t) {
+  var alice_db = {alice: alice}
+  var bob_db = {alice: [], bob: bob}
+
+  var alice_stream = Peer(alice_db, function (bob_id, seq) {
+    t.equal(bob_id, 'bob')
+    t.equal(seq, 3)
+    bob_requested = true
+  }) ()
+  var bob_stream = Peer(bob_db, function () {}) ()
+
+  pull(
+    alice_stream,
+    bob_stream,
+    alice_stream
+  )
+
+  t.deepEqual(alice_db.alice, bob_db.alice, 'bob has replicated alice')
+  t.notDeepEqual(alice_db.bob, bob_db.bob, 'alice has not replicated bob')
+  t.ok(bob_requested)
+  console.log(alice_stream.progress())
+  alice_db.bob = []
+  alice_stream.request('bob', 0)
+  t.deepEqual(alice_db.bob, bob_db.bob)
+  console.log(alice_stream.progress())
+  console.log(alice_db)
+  t.end()
+})
 
 
+tape('stream when one peer does not follow', function (t) {
+  var alice_db = {alice: alice}
+  var bob_db = {alice: [], bob: bob}
+
+  var alice_stream = Peer(alice_db, function (bob_id, seq) {
+    t.equal(bob_id, 'bob')
+    t.equal(seq, 3)
+    bob_requested = true
+  }) ()
+  var bob_stream = Peer(bob_db, function () {}) ()
+
+  pull(
+    alice_stream,
+    bob_stream,
+    alice_stream
+  )
+
+  t.ok(bob_requested)
+  t.deepEqual(alice_db.alice, bob_db.alice, 'bob has replicated alice')
+  t.notDeepEqual(alice_db.bob, bob_db.bob, 'alice has not replicated bob')
+
+  console.log(alice_stream.progress())
+  alice_db.bob = []
+  alice_stream.request('bob', -1)
+  t.notDeepEqual(alice_db.bob, bob_db.bob, 'alice has not replicated bob')
+
+  console.log(alice_stream.progress())
+  console.log(alice_db)
+  t.end()
+})
+
+tape('alice blocks bob', function (t) {
+  var alice_db = {alice: alice, bob: []}
+  var bob_db = {alice: [], bob: bob}
+
+  var alice_stream = Peer(alice_db) ()
+  var bob_stream = Peer(bob_db) ()
+
+  pull(
+    alice_stream,
+    pull.through(function (data) { console.log('alice>>', data) }),
+    bob_stream,
+    pull.through(function (data) { console.log('bob>>', data) }),
+    alice_stream
+  )
+  console.log('REPLICATED', alice_stream.progress())
+
+//  t.ok(bob_requested)
+//  t.deepEqual(alice_db.alice, bob_db.alice, 'bob has replicated alice')
+//  t.deepEqual(alice_db.bob, bob_db.bob, 'alice has replicated bob')
+//
+//  console.log(alice_stream.progress())
+
+  t.deepEqual(
+    alice_stream.progress(),
+    { sync: 2, feeds: 2, recv: 0, send: 0, total: 3, unknown: 0 }
+  )
+
+  alice_stream.request('bob', -1)
+  var msg = {author: 'bob', sequence: 4, content: 'BLOCKED'}
+  bob_db.bob.push(msg)
+  bob_stream.onAppend(msg)
+
+  t.deepEqual(
+    alice_stream.progress(),
+    { sync: 1, feeds: 1, recv: 0, send: 0, total: 3, unknown: 0 }
+  )
+
+  t.end()
+})
 
