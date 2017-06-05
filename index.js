@@ -187,15 +187,22 @@ module.exports = function (get, append) {
       onAppend: function (msg) {
         var k = msg.author
         //TMP, call a user provided function to decide how to handle this.
-        if(!states[k]) maybeQueue(k, states[k] = S.init(msg.sequence))
+//        if(!states[k]) {
+//          console.log('ON_APPEND', msg.author, msg.sequence)
+//          maybeQueue(k, states[k] = S.init(msg.sequence))
+//        }
+//
         if(states[k]) {
           maybeQueue(k, states[k] = S.appendMessage(states[k], msg))
           checkNote(k)
           next()
         }
       },
-      request: function (id, seq) {
+      //but what if you want to push in a bunch
+      //of items but not trigger next just yet?
+      request: function (id, seq, isSingle) {
         //only allow updates if it's gonna change the state.
+        //this section should move into state.js
         if(!states[id]) {
           states[id] = S.init(seq)
           readyNote[id] = true
@@ -205,12 +212,17 @@ module.exports = function (get, append) {
           states[id].local.seq == -1 ||
           (seq === -1 && states[id].local.seq != -1)
         ) {
+          //MUST set the local state, otherwise receiveMessage won't work.
+          if(seq >= 0) states[id].local.seq = seq
           states[id].ready = seq
           readyNote[id] = true
-          next()
+          if(isSingle !== false) {
+            next()
+          }
         }
       },
-      states: states
+      states: states,
+      next: next
     }
 
     if(opts.seqs) {
@@ -221,5 +233,4 @@ module.exports = function (get, append) {
 
   }
 }
-
 
