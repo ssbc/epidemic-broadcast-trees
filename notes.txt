@@ -39,6 +39,22 @@
   if the absolute value is greater, and we are not already receiving, ask to receive.
   else if positive, turn on send (and get ready if we have something)
   else if negative, turn off send.
+
+---
+
+UPDATE
+
+all negative notes are shifted -1. to say you have sequence 1
+but do not want more on that feed, send -2. -1 now means
+"I do not have and do not want this feed"
+
+requesting 0 means "I don't have anything from this feed, please send it"
+and a -ve number means "I have this but stop sending, because I have a better source"
+you can't send -0 because if you have a better source for nothing
+that means you don't want it. which is what -1 means.
+if you have seq 1, and someone else trys to give it to you,
+
+
 */
 
 
