@@ -96,7 +96,6 @@ module.exports = function (get, append) {
           if(error) return read(error, function () {})
 
           if(isMessage(data)) {
-            if(!states[data.author]) throw new Error('received strange author')
             maybeQueue(data.author, states[data.author] = S.receiveMessage(states[data.author], data))
             if(isMessage(states[data.author].effect)) {//append this message
               states[data.author].effect = null
@@ -123,8 +122,10 @@ module.exports = function (get, append) {
               //if we havn't requested this yet, see if we want it.
               //if we _don't want it_ we should say, otherwise
               //they'll ask us again next time.
-              if(!states[k]) onRequest(k, data[k])
-
+              if(!states[k]) {
+                states[k] = S.init(null)
+                onRequest(k, data[k])
+              }
               maybeQueue(k, states[k] = S.receiveNote(states[k], data[k]))
               if(states[k].ready != null)
                 ready = true
@@ -193,9 +194,19 @@ module.exports = function (get, append) {
         }
       },
       request: function (id, seq) {
+        //only allow updates if it's gonna change the state.
         if(!states[id]) {
           states[id] = S.init(seq)
           readyNote[id] = true
+        }
+        else if(
+          states[id].local.seq == null ||
+          states[id].local.seq == -1 ||
+          (seq === -1 && states[id].local.seq != -1)
+        ) {
+          states[id].ready = seq
+          readyNote[id] = true
+          next()
         }
       },
       states: states
@@ -209,11 +220,4 @@ module.exports = function (get, append) {
 
   }
 }
-
-
-
-
-
-
-
 
