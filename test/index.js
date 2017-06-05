@@ -192,12 +192,28 @@ tape('init, receiveNote-1, never send', function (t) {
   t.end()
 })
 
+//NOTE: requesting 0 means "I don't have anything from this feed, please send it"
+//and a -ve number means "I have this but stop sending, because I have a better source"
+//you can't send -0 because if you have a better source for nothing
+//that means you don't want it. which is what -1 means.
+//if you have seq 1, and someone else trys to give it to you,
+
 tape('init-1', function (t) {
   var state = states.init(-1)
   t.equal(state.ready, -1)
   state = states.read(state)
-  t.equal(state.local.req, 0)
+  t.equal(state.local.req, -1)
   t.end()
 })
+
+tape('init-2', function (t) {
+  var state = states.init(-2)
+  t.equal(state.ready, -2)
+  state = states.read(state)
+  t.equal(state.local.req, 1)
+  t.end()
+})
+
+
 
 
