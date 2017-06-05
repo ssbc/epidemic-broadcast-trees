@@ -1,3 +1,4 @@
+'use strict'
 var states = require('./state')
 var RNG = require('rng')
 var deepEqual = require('deep-equal')

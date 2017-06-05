@@ -1,3 +1,4 @@
+'use strict'
 //Question: can I use req to reliably track how many
 //messages we are expecting to receive?
 

@@ -1,3 +1,4 @@
+'use strict'
 //this should be replaced with a heap,
 //but i'll look for a good heap implementation later
 //this should be enough for now.

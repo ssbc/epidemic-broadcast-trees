@@ -1,3 +1,4 @@
+'use strict'
 var S = require('./state')
 var u = require('./util')
 var isNote = u.isNote
@@ -52,7 +53,7 @@ module.exports = function (get, append) {
       callback = opts, opts = {}
 
     var readyMsg = [], readyNote = {}
-    onChange = opts.onChange || require('./bounce')(function () {
+    var onChange = opts.onChange || require('./bounce')(function () {
       console.log(progress(states))
     }, 1000)
 
@@ -220,4 +221,5 @@ module.exports = function (get, append) {
 
   }
 }
+
 
