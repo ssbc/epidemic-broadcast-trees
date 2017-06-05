@@ -20,10 +20,13 @@ var S = require('../state')
 tape('unknown',  function (t) {
 
   var states = {alice: S.init(10)}
+  console.log(states)
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
   t.deepEqual(progress(states), {
     unknown: 1,  sync: 0,
-    send: 0, recv: 0, total: 10,
-    feeds: 1
+    send: 0, recv: 0, total: 0,
+    feeds: 0
   })
   t.end()
 })
@@ -33,6 +36,7 @@ tape('receive remote note, behind us', function (t) {
 
   var states = {alice: S.init(10)}
   states.alice = S.receiveNote(states.alice, 6)
+  console.log(states)
   t.deepEqual(progress(states), {
     unknown: 0,  sync: 0,
     send: 4, recv: 0, total: 4,
@@ -243,4 +247,30 @@ tape('progress after we send negative note', function (t) {
 
   t.end()
 })
+
+
+
+tape('our own state is unknown', function (t) {
+
+  var states = {alice: S.init(null)}
+  states.alice = S.receiveNote(states.alice, 8)
+  states.alice = S.read(states.alice)
+  t.deepEqual(progress(states),{
+    unknown: 1,  sync: 0,
+    send: 0, recv: 0, total: 0,
+    feeds: 0
+  })
+
+  states.alice.ready = -1
+  states.alice = S.read(states.alice)
+  console.log(states)
+  t.deepEqual(progress(states),{
+    unknown: 0,  sync: 0,
+    send: 0, recv: 0, total: 0,
+    feeds: 0
+  })
+
+  t.end()
+})
+
 
