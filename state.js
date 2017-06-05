@@ -18,13 +18,13 @@ function canSend(state) {
 
 function toSeq (n) {
   //return Math.abs(n)
-  return n < 0 ? ~n : n
+  return n < -1 ? ~n : n
 }
 
 //actually, want to be able to initialize this in receive mode or not.
 exports.init = function (local) {
-  if(!Number.isInteger(local))
-    throw new Error('local must be integer')
+//  if(!Number.isInteger(local))
+//    throw new Error('local must be integer')
   //idea for better structure
   return {
     //state of local,
@@ -102,6 +102,7 @@ exports.receiveMessage = function (state, msg) {
     //let read move us out of tx mode,
     if(state.remote.tx)
       _state.ready = -(seq + 1)
+    //XXX: there might be a race here if we are cancelling this feed
   }
   else if(isNextRxMessage(state, msg)) {
     //since we now know they are ahead, stop transmitting to them
@@ -123,12 +124,14 @@ exports.receiveNote = function (state, note) {
   var _state = clone(state)
   var seq = state.local.seq
   var requested = note >= 0
-  var _seq = Math.max(toSeq(note), state.remote.seq)
+  var _seq = note == -1 ? -1 : Math.max(toSeq(note), state.remote.seq)
 
   _state.local.tx = requested
   _state.remote.req = Math.max(_seq, _state.remote.req)
 
+  //if we havn't decided, or have decided we don't want this feed:
   if(state.local.req == null) return _state
+  if(state.local.req == -1) return _state
 
   if(isMessage(state.ready) && _seq >= state.ready.sequence)
       state.ready = null
@@ -179,7 +182,9 @@ exports.appendMessage = function (state, msg) {
   else if(!state.local.tx) {
     //if we don't know they are up to this, and they havn't
     //asked us to not send anything (-1) then send a note.
-    if(msg.sequence > state.remote.req && state.remote.req != 0) {
+    if(state.remote.req == -1)
+      ; //they do not want to hear about this one
+    else if(msg.sequence > state.remote.req && state.remote.req != 0) {
       _state.ready = state.remote.tx ? msg.sequence : -(msg.sequence+1) //SEND NOTE
     }
     else if(isNote(state.ready) && state.ready > 0)
