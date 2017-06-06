@@ -203,6 +203,8 @@ module.exports = function (get, append) {
       request: function (id, seq, isSingle) {
         //only allow updates if it's gonna change the state.
         //this section should move into state.js
+        if(!Number.isInteger(seq))
+          throw new Error('ebt.stream.request(seq): seq must be integer') 
         if(!states[id]) {
           states[id] = S.init(seq)
           readyNote[id] = true
