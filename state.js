@@ -3,6 +3,12 @@ var u = require('./util')
 var isMessage = u.isMessage
 var isNote = u.isNote
 
+//Math.max(null, -1) => 0, but I would rather it be -1
+function max (a, b) {
+  return a == null ? b : b == null ? a : a < b ? b : a
+}
+
+
 //okay just pretending to be purely functional
 //(but if you have good functional disipline, you can mutate)
 function clone (state) { return state }
@@ -13,13 +19,14 @@ function isInitRx (state) {
 
 function canSend(state) {
   return !isInitRx(state) &&
-    state.local.seq > Math.max(state.remote.seq, state.remote.req)  && state.local.tx
+    state.local.seq > max(state.remote.seq, state.remote.req)  && state.local.tx
 }
 
 function toSeq (n) {
   //return Math.abs(n)
   return n < -1 ? ~n : n
 }
+
 
 //actually, want to be able to initialize this in receive mode or not.
 exports.init = function (local) {
@@ -49,17 +56,17 @@ exports.read = function (state) {
   var _ready = state.ready
   state.ready = null
   if(isMessage(_ready)) {
-    if(state.remote.seq != null && Math.max(state.remote.seq, state.remote.req) +1 !== _ready.sequence) {
+    if(state.remote.seq != null && max(state.remote.seq, state.remote.req) +1 !== _ready.sequence) {
       throw new Error('out of order!')
     }
     state.remote.seq = _ready.sequence
-    state.local.req = Math.max(state.local.req, _ready.sequence)
+    state.local.req = max(state.local.req, _ready.sequence)
   } else {
     state.local.req = toSeq(_ready)
     state.remote.tx = _ready >= 0
   }
   if(canSend(state)) {
-    state.effect = Math.max(state.remote.seq, state.remote.req) + 1
+    state.effect = max(state.remote.seq, state.remote.req) + 1
   }
 
   return state
@@ -77,7 +84,7 @@ function isNextTxMessage (state, msg) {
   return (
     !isInitRx(state) &&
     state.remote.req < msg.sequence &&
-    msg.sequence === Math.max(state.remote.seq, state.remote.req) + 1
+    msg.sequence === max(state.remote.seq, state.remote.req) + 1
   )
 }
 
@@ -85,9 +92,9 @@ exports.receiveMessage = function (state, msg) {
   if(!isMessage(msg)) throw new Error('expected a Message!')
   var _state = clone(state)
 
-  _state.remote.req = Math.max(state.remote.req || 0, msg.sequence)
+  _state.remote.req = max(state.remote.req || 0, msg.sequence)
   //not the same^
-  _state.remote.seq = Math.max(state.remote.seq || 0, msg.sequence)
+  _state.remote.seq = max(state.remote.seq || 0, msg.sequence)
 
   if(state.remote.tx == null)
     throw new Error('we received a message, when we where waiting for remote to send initial request')
@@ -119,15 +126,17 @@ exports.receiveMessage = function (state, msg) {
   return _state
 }
 
+
+
 exports.receiveNote = function (state, note) {
   if(!isNote(note)) throw new Error('expected note!')
   var _state = clone(state)
   var seq = state.local.seq
   var requested = note >= 0
-  var _seq = note == -1 ? -1 : Math.max(toSeq(note), state.remote.seq)
+  var _seq = note == -1 ? -1 : max(toSeq(note), state.remote.seq)
 
   _state.local.tx = requested
-  _state.remote.req = Math.max(_seq, _state.remote.req)
+  _state.remote.req = max(_seq, _state.remote.req)
 
   //if we havn't decided, or have decided we don't want this feed:
   if(state.local.req == null) return _state
@@ -168,15 +177,15 @@ exports.appendMessage = function (state, msg) {
 
       if(state.local.req != null) {
         _state.ready = null
-        if(_state.local.seq > Math.max(state.remote.seq, state.remote.req))
-          _state.effect = Math.max(state.remote.seq, state.remote.req) + 1
+        if(_state.local.seq > max(state.remote.seq, state.remote.req))
+          _state.effect = max(state.remote.seq, state.remote.req) + 1
       }
     }
     else if(!isMessage(_state.ready)) {
       _state.ready = null
 
-      if(state.local.seq > Math.max(state.remote.req,state.remote.seq))
-        state.effect = Math.max(state.remote.req,state.remote.seq) + 1
+      if(state.local.seq > max(state.remote.req,state.remote.seq))
+        state.effect = max(state.remote.req,state.remote.seq) + 1
     }
   }
   else if(!state.local.tx) {
@@ -207,4 +216,5 @@ exports.gotMessage = function (state, msg) {
   //anyway, just get on with things
   return _state
 }
+
 
