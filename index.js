@@ -74,6 +74,10 @@ module.exports = function (get, append) {
     }
 
     var states = {}, error
+    var meta = {
+      recv: {message:0, note: 0},
+      send: {message:0, note: 0}
+    }
 
     var next = Next()
     function checkNote (k) {
@@ -97,6 +101,7 @@ module.exports = function (get, append) {
           if(error) return read(error, function () {})
 
           if(isMessage(data)) {
+            meta.recv.message ++
             maybeQueue(data.author, states[data.author] = S.receiveMessage(states[data.author], data))
             if(isMessage(states[data.author].effect)) {//append this message
               states[data.author].effect = null
@@ -105,6 +110,7 @@ module.exports = function (get, append) {
               //also note, there may be other messages which have been received
               //and we could theirfore do parallel calls to append, but would make this
               //code quite complex.
+              meta.recv.message ++
               append(data, function (err) {
                 onChange()
                 read(null, cb)
@@ -123,6 +129,7 @@ module.exports = function (get, append) {
               //if we havn't requested this yet, see if we want it.
               //if we _don't want it_ we should say, otherwise
               //they'll ask us again next time.
+              meta.recv.note ++
               if(!states[k]) {
                 states[k] = S.init(null)
                 onRequest(k, data[k])
@@ -156,6 +163,7 @@ module.exports = function (get, append) {
           var state
           if(readyMsg.length && (state = oldest(readyMsg)) && isMessage(state.ready)) {
             var msg = state.ready
+            meta.send.message ++
             maybeQueue(msg.author, state = S.read(state))
             checkNote(msg.author)
             onChange()
@@ -168,6 +176,7 @@ module.exports = function (get, append) {
               if(isNote(states[k].ready)) {
                 n ++
                 notes[k] = states[k].ready
+                meta.send.note ++
                 states[k] = S.read(states[k])
                 checkNote(k)
               }
@@ -224,6 +233,7 @@ module.exports = function (get, append) {
         }
       },
       states: states,
+      meta: meta,
       next: next
     }
 
@@ -235,4 +245,5 @@ module.exports = function (get, append) {
 
   }
 }
+
 
