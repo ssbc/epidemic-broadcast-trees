@@ -110,7 +110,6 @@ module.exports = function (get, append) {
               //also note, there may be other messages which have been received
               //and we could theirfore do parallel calls to append, but would make this
               //code quite complex.
-              meta.recv.message ++
               append(data, function (err) {
                 onChange()
                 read(null, cb)
@@ -245,5 +244,6 @@ module.exports = function (get, append) {
 
   }
 }
+
 
 
