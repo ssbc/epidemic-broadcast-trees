@@ -139,23 +139,15 @@ an example object output looks like this, all values are integers >= 0.
 
 ``` js
 {
-  feeds: N, //number of feeds being replicated.
-  sync: N, //number of feeds that are fully synchronised.
-  send: N, //number of messages that you need to send.
-  recv: N, //number of messages that you expect to receive.
-  total: N, //number of messages that need to be sent or received to become in sync.
-  unknown: N, //number of feeds which are at unknown progress, because one party has not given a known sequence from this feed yet.
+  start: S, //where we where at when we started
+  current: C, //operations done
+  total: T //operations expected
 }
 ```
 
-to make a progress bar that move smoothly across and represents
-the state of the current session, you can use
+this follows a common pattern I've used across ssbc modules for representing progress,
+used for example here: `https://github.com/ssbc/scuttlebot/blob/master/lib/progress.js`
 
-``` js
-var prog = stream.progress()
-//changes from 0 to 1 when fully replicated.
-console.log(1 - ((prog.send+prog.recv) / prog.total))
-```
 
 ## comparison to plumtree
 
@@ -175,6 +167,8 @@ it easy to represent what messages have not been seen using just a incrementing 
 ## License
 
 MIT
+
+
 
 
 
