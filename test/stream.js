@@ -304,7 +304,8 @@ tape('alice blocks bob', function (t) {
 
   t.deepEqual(
     alice_stream.progress(),
-    { sync: 2, feeds: 2, recv: 0, send: 0, total: 3, unknown: 0 }
+    {current: 10, start: 0, target: 10}
+//    { sync: 2, feeds: 2, recv: 0, send: 0, total: 3, unknown: 0 }
   )
 
   alice_stream.request('bob', -1)
@@ -312,11 +313,18 @@ tape('alice blocks bob', function (t) {
   bob_db.bob.push(msg)
   bob_stream.onAppend(msg)
 
-  t.deepEqual(
-    alice_stream.progress(),
-    { sync: 1, feeds: 1, recv: 0, send: 0, total: 3, unknown: 0 }
-  )
+  var p = alice_stream.progress()
+  console.log(p)
+  t.equal(p.current, p.target)
+  t.ok(p.target > 0)
 
   t.end()
 })
+
+
+
+
+
+
+
 

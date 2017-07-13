@@ -17,260 +17,131 @@ var S = require('../state')
     that is asked for.
 */
 
-tape('unknown',  function (t) {
+tape('initialize, send each other notes, in sync',  function (t) {
+
+  var states = {alice: S.init(10)}
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
+  t.deepEqual(progress(states), {
+    start: 0, current: 0, target: 2
+  })
+  states.alice = S.read(states.alice)
+  t.deepEqual(progress(states), {
+    start: 0, current: 1, target: 2
+  })
+
+  states.alice = S.receiveNote(states.alice, 10)
+  t.deepEqual(progress(states), {
+    start: 0, current: 2, target: 2
+  })
+
+  t.end()
+})
+
+
+tape('initialize, send each other notes',  function (t) {
 
   var states = {alice: S.init(10)}
   console.log(states)
   //total should be zero here because we do not expect
   //to send anything until unknown goes to zero.
-  t.deepEqual(progress(states), {
-    unknown: 1,  sync: 0,
-    send: 0, recv: 0, total: 0,
-    feeds: 0
-  })
-  t.end()
-})
-
-tape('receive remote note, behind us', function (t) {
-  //receive a message, now we know what we need to send
-
-  var states = {alice: S.init(10)}
-  states.alice = S.receiveNote(states.alice, 6)
-  console.log(states)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 4, recv: 0, total: 4,
-    feeds: 1
-  })
-
-  t.end()
-})
-
-tape('receive remote note, ahead us', function (t) {
-  //receive a message, now we know what we need to send
-
-  var states = {alice: S.init(6)}
-  states.alice = S.receiveNote(states.alice, 10)
-  console.log(states)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 0, recv: 4, total: 4,
-    feeds: 1
-  })
-
-  t.end()
-})
-
-tape('receive remote note, equal to us', function (t) {
-  //receive a message, now we know what we need to send
-
-  var states = {alice: S.init(6)}
-  states.alice = S.receiveNote(states.alice, 6)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0, total: 0,
-    feeds: 1
-  })
-
-  t.end()
-})
-
-tape('send a message to peer behind us', function (t) {
-  //receive a message, now we know what we need to send
-
-  var states = {alice: S.init(10)}
-  states.alice = S.receiveNote(states.alice, 4)
   states.alice = S.read(states.alice)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 6, recv: 0, total: 6,
-    feeds: 1
-  })
-  states.alice = S.gotMessage(
-    states.alice,
-    {author: 'alice', sequence: 5, content: 'hello'}
-  )
-  console.log(states)
-
-  states.alice = S.read(states.alice)
-  console.log(states)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 5, recv: 0, total: 6,
-    feeds: 1
-  })
-//XXX we can actually calculate an overall per message progress
-//here, because we can compare the remote.req to our local.seq
-//and remote.seq
-
-  t.end()
-})
-
-function receiveAppend(state, msg) {
-  state = S.receiveMessage(state, msg)
-  return S.appendMessage(state, msg)
-}
-
-tape('receive a message from a peer ahead of us', function (t) {
-  //receive a message, now we know what we need to send
-
-  var states = {alice: S.init(4)}
-  states.alice = S.receiveNote(states.alice, 8)
-  states.alice = S.read(states.alice)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 0, recv: 4, total: 4,
-    feeds: 1
-  })
-
-  states.alice = receiveAppend(
-    states.alice,
-    {author: 'alice', sequence: 5, content: 'hello'}
-  )
-
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 0,
-    send: 0, recv: 3, total: 4,
-    feeds: 1
-  })
-
-  states.alice = receiveAppend(
-    states.alice,
-    {author: 'alice', sequence: 6, content: 'hello'}
-  )
-  states.alice = receiveAppend(
-    states.alice,
-    {author: 'alice', sequence: 7, content: 'hello'}
-  )
-  states.alice = receiveAppend(
-    states.alice,
-    {author: 'alice', sequence: 8, content: 'hello'}
-  )
-  console.log(states)
-  t.deepEqual(progress(states), {
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0, total: 4,
-    feeds: 1
-  })
-
-
-//XXX we can actually calculate an overall per message progress
-//here, because we can compare the remote.req to our local.seq
-//and remote.seq
-
-  t.end()
-})
-
-
-tape('progress when received negative note', function (t) {
-
-  var states = {alice: S.init(10)}
-  states.alice = S.receiveNote(states.alice, -8)
-  states.alice = S.read(states.alice)
-  console.log(states)
-  console.log(progress(states))
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 0,
-    send: 0, recv: 0, total: 0,
-    feeds: 0
-  })
-  t.end()
-})
-
-
-tape('progress after we send negative note', function (t) {
-
-  var states = {alice: S.init(9)}
   states.alice = S.receiveNote(states.alice, 9)
-  states.alice = S.read(states.alice)
-  //we are currently in sync
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0, total: 0,
-    feeds: 1
+  console.log(states.alice)
+  t.deepEqual(progress(states), {
+    start: 9, current: 2+9, target: 2+10
   })
+
+  states.alice = S.read(S.gotMessage(states.alice, {
+    sequence: 10, author: 'alice', content: 'foo'
+  }))
+
+  t.deepEqual(progress(states), {
+    start: 9, current: 2+9+1, target: 2+10
+  })
+
+  t.end()
+})
+
+tape('initialize, send each other notes, remote is ahead',  function (t) {
+
+  var states = {alice: S.init(10)}
+  console.log(states)
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
+  states.alice = S.read(states.alice)
+  states.alice = S.receiveNote(states.alice, 14)
+  console.log(states.alice)
+  t.deepEqual(progress(states), {
+    start: 10, current: 2+10, target: 2+14
+  })
+
   var msg = {
-    author: 'alice', sequence: 10, content: 'hello'
+    sequence: 11, author: 'alice', content: 'foo'
   }
-  states.alice = S.appendMessage(states.alice, msg)
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 0,
-    send: 1, recv: 0, total: 1,
-    feeds: 1
-  })
-  //and send the message
-  states.alice = S.read(states.alice)
-  console.log(states)
-  console.log(progress(states))
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0, total: 1,
-    feeds: 1
-  })
-
-  //but then we receive the same message!
   states.alice = S.receiveMessage(states.alice, msg)
-  //we'll make a 'no thankyou note'
-  states.alice = S.read(states.alice)
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0,
-    //total goes to zero because we know they are up to us.
-    total: 0,
-    feeds: 1
-  })
+  states.alice = S.appendMessage(states.alice, msg)
 
-  states.alice = S.appendMessage(states.alice, {
-    author: 'alice', sequence: 11, content: 'hello'
-  })
-
-  //now we are one ahead, but we will send it.
-
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 0,
-    send: 1, recv: 0,
-    //total goes to zero because we know they are up to us.
-    total: 1,
-    feeds: 1
-  })
-
-  states.alice = S.read(states.alice)
-
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 1,
-    send: 0, recv: 0,
-    //total goes to zero because we know they are up to us.
-    total: 1,
-    feeds: 1
-  })
-
-
-  t.end()
-})
-
-
-
-tape('our own state is unknown', function (t) {
-
-  var states = {alice: S.init(null)}
-  states.alice = S.receiveNote(states.alice, 8)
-  states.alice = S.read(states.alice)
-  t.deepEqual(progress(states),{
-    unknown: 1,  sync: 0,
-    send: 0, recv: 0, total: 0,
-    feeds: 0
-  })
-
-  states.alice.ready = -1
-  states.alice = S.read(states.alice)
   console.log(states)
-  t.deepEqual(progress(states),{
-    unknown: 0,  sync: 0,
-    send: 0, recv: 0, total: 0,
-    feeds: 0
+  t.deepEqual(progress(states), {
+    start: 10, current: 2+10+1, target: 2+14
   })
 
   t.end()
 })
 
+
+tape('initialize, send each other notes, remote refuses',  function (t) {
+
+  var states = {alice: S.init(10)}
+  console.log(states)
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
+  states.alice = S.read(states.alice)
+  states.alice = S.receiveNote(states.alice, -1)
+  console.log(states.alice)
+  t.deepEqual(progress(states), {
+    start: 0, current: 2, target: 2
+  })
+
+
+  t.end()
+})
+
+
+//hmm, should this still wait for the remote note even though
+//we said we were not interested in this at all?
+tape('initialize, send each other notes, local refuses',  function (t) {
+
+  var states = {alice: S.init(-1)}
+  console.log(states)
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
+  states.alice = S.read(states.alice)
+  states.alice = S.receiveNote(states.alice, -1)
+  console.log(states.alice)
+  t.deepEqual(progress(states), {
+    start: 0, current: 2, target: 2
+  })
+
+
+  t.end()
+})
+
+
+tape('initialize, send each other notes, behind, but does\'t want data ',  function (t) {
+
+  var states = {alice: S.init(10)}
+  console.log(states)
+  //total should be zero here because we do not expect
+  //to send anything until unknown goes to zero.
+  states.alice = S.read(states.alice)
+  states.alice = S.receiveNote(states.alice, -9)
+  console.log(states.alice)
+  t.deepEqual(progress(states), {
+    start: 0, current: 2, target: 2
+  })
+
+  t.end()
+})
 
