@@ -101,14 +101,16 @@ exports.receiveMessage = function (state, msg) {
 
   var seq = state.local.seq
   if(isMessage(state.ready)) {
-    if(state.ready.sequence <= msg.sequence)
+    if(state.ready.sequence <= msg.sequence) {
       state.ready = null
+    }
   }
   if(isOldMessage(state, msg)) {
     //we already know this, please shut up!
     //let read move us out of tx mode,
-    if(state.remote.tx)
+    if(state.remote.tx) {
       _state.ready = -(seq + 1)
+    }
     //XXX: there might be a race here if we are cancelling this feed
   }
   else if(isNextRxMessage(state, msg)) {
@@ -116,11 +118,13 @@ exports.receiveMessage = function (state, msg) {
     if(state.ready != null)
       _state.ready = null
     _state.effect = msg
-    if(state.remote.tx == false)
+    if(state.remote.tx == false) {
       state.ready = state.local.seq
+    }
   }
   else {
     //this means something went really wrong
+    console.log('WRONG MESSAGE', msg, state)
     _state.error = true
   }
   return _state
@@ -163,8 +167,12 @@ exports.appendMessage = function (state, msg) {
   if(!isMessage(msg)) throw new Error('appendMessage expects a message!')
   //if this is the msg they need next, make
   var _state = clone(state)
-  _state.local.seq = msg.sequence
+  //this shouldn't really happen, but this is a hack
+  //to support recent changes to secure-scuttlebutt.
+  if(msg.sequence <= _state.local.seq)
+    return _state
 
+  _state.local.seq = msg.sequence
   if(state.local.tx) {
     if(isNextTxMessage(state, msg)) {
       _state.ready = msg
@@ -216,5 +224,4 @@ exports.gotMessage = function (state, msg) {
   //anyway, just get on with things
   return _state
 }
-
 
