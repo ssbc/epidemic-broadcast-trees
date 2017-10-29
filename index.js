@@ -82,7 +82,9 @@ module.exports = function (get, append) {
     var next = Next()
     function checkNote (k) {
       if(isNote(states[k].effect)) {
-        get(k, states[k].effect, function (err, msg) {
+        var seq = states[k].effect
+        states[k].effect = null
+        get(k, seq, function (err, msg) {
           if(msg) {
             maybeQueue(k, states[k] = S.gotMessage(states[k], msg))
             if(states[k].ready) next()
@@ -244,6 +246,4 @@ module.exports = function (get, append) {
 
   }
 }
-
-
 
