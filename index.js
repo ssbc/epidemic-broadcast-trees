@@ -5,7 +5,7 @@ var isNote = u.isNote
 var isMessage = u.isMessage
 var progress = require('./progress')
 
-function oldest(ready, states) {
+function oldest(ready) {
   //could do ready.sort but that is O(n*log(n)) (i think?) so faster to iterate
 
   var min = null
@@ -14,7 +14,7 @@ function oldest(ready, states) {
       ready.splice(i, 1) //this item is not a ready message (any more) remove from queue)
     else if(min == null)
       min = i
-    else if (ready[i].ready.timestamp < ready[i].ready.timestamp) min = i
+    else if (ready[i].ready.timestamp < ready[min].ready.timestamp) min = i
   }
 
   if(min != null) {
@@ -22,7 +22,6 @@ function oldest(ready, states) {
     ready.splice(i, 1)
     return state
   }
-
 }
 
 function Next () {
