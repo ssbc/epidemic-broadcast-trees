@@ -14,7 +14,7 @@ function oldest(ready, states) {
       ready.splice(i, 1) //this item is not a ready message (any more) remove from queue)
     else if(min == null)
       min = i
-    else if (ready[i].ready.timestamp < ready[i].ready.timestamp) min = i
+    else if (ready[min].ready.timestamp < ready[i].ready.timestamp) min = i
   }
 
   if(min != null) {
