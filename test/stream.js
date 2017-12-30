@@ -55,6 +55,14 @@ var bob = [
   {author: 'bob', sequence: 3, content: 'Z'}
 ]
 
+var bob = [
+  {author: 'charles', sequence: 1, content: 'L'},
+  {author: 'charles', sequence: 2, content: 'M'},
+  {author: 'charles', sequence: 3, content: 'N'},
+  {author: 'charles', sequence: 4, content: 'O'},
+  {author: 'charles', sequence: 5, content: 'P'},
+]
+
 tape('two peers', function (t) {
 
   var alice_db, bob_db
@@ -320,6 +328,64 @@ tape('alice blocks bob', function (t) {
 
   t.end()
 })
+
+return
+tape('alice streams from bob and charles', function (t) {
+  //note, bob and 
+  var alice_db = {alice: alice, bob: [], charles: charles}
+  var bob_db = {alice: [], bob: bob, charles: []}
+  var charles_db = {alice: [], bob: bob, charles: charles}
+
+  var alice_stream = Peer(alice_db) ()
+  var alice_stream2 = Peer(alice_db) ()
+  var bob_stream = Peer(bob_db) ()
+  var charles_stream = Peer(charles_db) ()
+
+  pull(
+    alice_stream,
+    pull.through(function (data) { console.log('alice>>', data) }),
+    bob_stream,
+    pull.through(function (data) { console.log('bob>>', data) }),
+    alice_stream
+  )
+
+  pull(
+    alice_stream2,
+    pull.through(function (data) { console.log('alice2>>', data) }),
+    charles_stream,
+    pull.through(function (data) { console.log('charles>>', data) }),
+    alice_stream2
+  )
+
+  console.log('REPLICATED', alice_stream.progress())
+
+//  t.ok(bob_requested)
+//  t.deepEqual(alice_db.alice, bob_db.alice, 'bob has replicated alice')
+//  t.deepEqual(alice_db.bob, bob_db.bob, 'alice has replicated bob')
+//
+//  console.log(alice_stream.progress())
+
+    console.log(alice_db)
+
+//  t.deepEqual(
+//    alice_stream.progress(),
+//    {current: 10, start: 0, target: 10}
+////    { sync: 2, feeds: 2, recv: 0, send: 0, total: 3, unknown: 0 }
+//  )
+//
+//  alice_stream.request('bob', -1)
+//  var msg = {author: 'bob', sequence: 4, content: 'BLOCKED'}
+//  bob_db.bob.push(msg)
+//  bob_stream.onAppend(msg)
+//
+//  var p = alice_stream.progress()
+//  console.log(p)
+//  t.equal(p.current, p.target)
+//  t.ok(p.target > 0)
+//
+  t.end()
+})
+
 
 
 
