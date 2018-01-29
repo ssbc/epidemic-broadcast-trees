@@ -124,9 +124,41 @@ if you have seq 1, and someone else trys to give it to you,
       }
       else if(!remote.receiving) {
         if(abs(note.seq) > local[id]) //if this is the fastest peer for this feed, ask them to send.
-          
-
       }
-    
-  
+
+---
+
+TAKE 2. a lot of what we need to run a real ebt network ended up in ssb-ebt, and it should
+be in this repo so it's easy to extend this to other protocols.
+
+clock: {id: seq,...},
+connections: {
+  peer_id: {
+    clock: {id: +/- seq,...},
+    msgs: [], //messages that can be sent.
+    notes: {id: +/- seq, ...}, //notes to send. gets replaced with {} after sending.
+    next: [id,...],
+    replicating: {
+      id: {tx: bool, rx: bool, retrive: bool, sent: seq},...
+    }
+  }
+},
+
+if this was all binary...
+
+clock: HashTable(id:seq), //10k*4 = 40k
+connections: {
+  hashtable(peer_id: { //4*25 = 100
+    clock: HashTable(id:+/-seq), //(25~10k)*40 100~40k
+    msgs: CircularBuffer(8k*10), //80k
+    replicating: HashTable(id: [sent, Pointer(next), Flags(tx,rx,retrive)]), //4+4+1
+    next: Pointer(next), last: Pointer(last) //pointers into the hashtable //4+4
+  })
+}
+
+40k + N*(80k + M(10*4+9+4 = 53))
+
+
+
+
 
