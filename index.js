@@ -113,13 +113,15 @@ module.exports = function (get, append) {
               //code quite complex.
               append(data, function (err) {
                 onChange()
-                read(null, cb)
                 next()
+                read(null, cb)
               })
             }
-            else
+            else {
+              next()
               read(null, cb)
-
+              return
+            }
             next()
           }
           else {
@@ -245,6 +247,5 @@ module.exports = function (get, append) {
 
   }
 }
-
 
 
