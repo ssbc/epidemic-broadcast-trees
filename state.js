@@ -108,6 +108,8 @@ exports.receiveMessage = function (state, msg) {
   if(isOldMessage(state, msg)) {
     //we already know this, please shut up!
     //let read move us out of tx mode,
+//    console.log("OLD MESSAGE", state, msg)
+    //TODO: set number of old messages received as status
     if(state.remote.tx) {
       _state.ready = -(seq + 1)
     }
@@ -123,8 +125,9 @@ exports.receiveMessage = function (state, msg) {
     }
   }
   else {
+    if(state.effect) console.log("WAS TRYING TO WRITE", state.effect, msg)
     //this means something went really wrong
-    console.log('WRONG MESSAGE', msg, state)
+    console.log('FORKED MESSAGE', msg.author, msg.sequence, state)
     _state.error = true
   }
   return _state
