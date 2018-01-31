@@ -1,45 +1,47 @@
 
-var tick = require('./simulator')()
+var createSimulator = require('./simulator')
 var events = require('../../rewrite').events
-var network = {}
-var alice = network['alice'] = tick.createPeer('alice')
-var bob = network['bob'] = tick.createPeer('bob')
 
-alice.init({})
-bob.init({})
+var test = require('tape')
 
-alice.append({author: 'alice', sequence: 1, content: {}})
-alice.append({author: 'alice', sequence: 2, content: {}})
-alice.append({author: 'alice', sequence: 3, content: {}})
+function createTest (seed) {
+  test('simple test with seed:'+seed, function (t) {
+    var tick = createSimulator(seed)
 
-console.log('ALICE', JSON.stringify(alice, null, 2))
+    var network = {}
+    var alice = network['alice'] = tick.createPeer('alice')
+    var bob = network['bob'] = tick.createPeer('bob')
 
-alice.follow('alice')
-bob.follow('alice')
+    alice.init({})
+    bob.init({})
 
-alice.connect(bob)
+    alice.append({author: 'alice', sequence: 1, content: {}})
+    alice.append({author: 'alice', sequence: 2, content: {}})
+    alice.append({author: 'alice', sequence: 3, content: {}})
 
-alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
-bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
+    alice.follow('alice')
+    bob.follow('alice')
 
+    alice.connect(bob)
 
-while(tick(network)) ;
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
-//console.log(tick(network))
+    alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
+    bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
 
-//should have set up peer.replicatings to tx/rx alice
-console.log('BOB', JSON.stringify(bob, null, 2))
-console.log('ALICE', JSON.stringify(alice, null, 2))
+    while(tick(network)) ;
 
+    //should have set up peer.replicatings to tx/rx alice
 
-//console.log(JSON.stringify(bob, null, 2))
-//
+    t.deepEqual(bob.store, alice.store)
+    t.end()
+  })
+}
 
+var seed = process.argv[2]
+if(isNaN(seed))
+  for(var i = 0; i < 100; i++)
+    createTest(i)
+else
+  createTest(+seed)
+//  createTest(i)
 
 

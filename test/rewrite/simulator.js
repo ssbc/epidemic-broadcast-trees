@@ -1,16 +1,20 @@
 
 var events = require('../../rewrite').events
 var RNG = require('rng')
-module.exports = function (seed) {
 
-var rng = new RNG.MT(seed || 0)
+var log
 
 for(var k in events) (function (fn, k) {
   events[k] = function (state, value) {
-    console.log(k.toUpperCase(), value)
+    if(log) console.log(k.toUpperCase(), value)
     return fn(state, value)
   }
 })(events[k],k)
+
+module.exports = function (seed, _log) {
+log = _log = true
+var rng = new RNG.MT(seed || 0)
+
 
 function createPeer(id) {
   var store = {}, state = events.initialize(), self
@@ -34,13 +38,12 @@ function createPeer(id) {
       state = events.follow(state, {id: peer, value: value !== false})
     },
     append: function (msg) {
-      console.log("APPEND", msg)
       if(msg.sequence == 1) {
         if(store[msg.author]) throw new Error('already has author:'+msg.author)
         store[msg.author] = [msg]
       }
       else if(msg.sequence != store[msg.author].length+1)
-        throw new Error('expected msg: '+msg.author+':'+store[msg.author].length+1, ' but got:'+msg.sequence)
+        throw new Error('expected msg: '+msg.author+':'+(store[msg.author].length +1)+ ' but got:'+msg.sequence)
       else
         store[msg.author].push(msg)
 
@@ -83,21 +86,9 @@ function tick (network) {
           var msg = peer.state.receive.shift()
           peer.append(msg)
           return true
-          
         }
-//        return randomFind(peer.state.peers, function (key, p2p) {
-//          if(p2p.receive.length) {
-////            var msg = p2p.msgs.shift()
-////              network[key].state =
-////                events.receive(network[key].state, {id: id, value: msg})
-////
-//            peer.append(msg)
-//            return true
-//          }
-//        })
       }, function () {
         return randomFind(peer.state.peers, function (key, p2p) {
-          console.log(key, p2p)
           //randomly order, to simulate async
           p2p.retrive = shuffle(p2p.retrive)
           if(p2p.retrive.length) {
@@ -117,7 +108,6 @@ function tick (network) {
     }, function () { //network ops
       return randomFind(peer.state.peers, function (remote_id, remote) {
         if(remote.msgs.length) {
-          console.log('SEND', remote.msgs[0])
           network[remote_id].state =
             events.receive(network[remote_id].state, {id: id, value: remote.msgs.shift() })
           return true
@@ -139,6 +129,4 @@ function tick (network) {
   return tick
 
 }
-
-
 
