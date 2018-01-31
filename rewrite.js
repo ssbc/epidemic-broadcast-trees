@@ -111,8 +111,6 @@ exports.events.peerClock = function (state, ev) {
     }
   }
 
-  console.log('peerClock', state)
-
   return state
 }
 
@@ -242,5 +240,7 @@ exports.events.notes = function (state, ev) {
   }
   return state
 }
+
+
 
 
