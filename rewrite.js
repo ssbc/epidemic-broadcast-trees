@@ -1,4 +1,3 @@
-//var ref = require('ssb-ref')
 
 function isFeed (id) {
   return 'string' === typeof id
@@ -140,15 +139,7 @@ exports.events.follow = function (state, ev) {
           }
           peer.notes = peer.notes || {}
           peer.notes[ev.id] = state.clock[ev.id] || 0
-
         }
-//        else if(peer.clock[ev.id] == null) {
-//          peer.replicating[ev.id] = {
-//            rx: false, tx: false, sent: null, retrive: null
-//          }
-//          peer.notes = peer.notes || {}
-//          peer.notes[ev.id] = 
-//        }
       }
     }
   }
@@ -231,19 +222,15 @@ exports.events.notes = function (state, ev) {
       peer.notes[id] = -1
     }
     else {
-      if(!peer.replicating[id]) {
+      if(!peer.replicating[id])
         peer.replicating[id] = {tx: true, rx: true, sent: seq}
-//        console.log(state)
-//        console.log(ev)
-//        throw new Error('unexpected')
-      }
+
       //positive seq means "send this to me please"
       peer.replicating[id].tx = seq >= 0
 
       //in the case we are already ahead, get ready to send them messages.      
-      if(seq >= 0 && state.clock[id] > seq /*&& !peer.replicating[id].retrive*/) {
+      if(seq >= 0 && state.clock[id] > seq) {
         peer.replicating[id].sent = seq
-        //peer.replicating[id].retrive = true //look up this record
         peer.retrive.push(id)
       }
 
