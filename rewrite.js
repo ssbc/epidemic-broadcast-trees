@@ -85,6 +85,7 @@ exports.events.connect = function (state, ev) {
     notes: null,
     replicating: {}
   }
+
   return state
 }
 
@@ -102,12 +103,15 @@ exports.events.peerClock = function (state, ev) {
   for(var id in state.follows) {
     if(clock[id] == null || clock[id] != state.clock[id]) {
       peer.notes = peer.notes || {}
-      peer.replicating = peer.replicating || {
+      peer.notes[id] = state.clock[id] || 0
+      peer.replicating = peer.replicating || {}
+      peer.replicating[id] = {
         tx: false, rx: true, sent: null
       }
-      peer.notes[id] = state.clock[id] || 0
     }
   }
+
+  console.log('peerClock', state)
 
   return state
 }
@@ -150,7 +154,7 @@ exports.events.retrive = function (state, msg) {
   //check if any peer requires this msg
   for(var id in state.peers)
     var rep = state.peers[id].replicating[msg.author]
-    if(rep && rep.tx && rep.sent + 1 == msg.sequence) {
+    if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
       state.peers[id].msgs.push(msg)
       if(rep.sent < state.clock[msg.author])
@@ -161,14 +165,14 @@ exports.events.retrive = function (state, msg) {
 
 exports.events.append = function (state, msg) {
   //check if any peer requires this msg
-  if(state.clock[msg.author] != null && state.clock[msg.author] + 1 != msg.sequence) return state //ignore
+  if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
 
   state.clock[msg.author] = msg.sequence
 
   for(var id in state.peers) {
     var peer = state.peers[id]
     var rep = peer.replicating[msg.author]
-    if(rep.tx && rep.sent+1 == msg.sequence) {
+    if(rep.tx && rep.sent == msg.sequence - 1) {
       peer.msgs.push(msg)
       rep.sent++
     }
@@ -192,7 +196,7 @@ exports.events.receive = function (state, ev) {
     var peer = state.peers[ev.id]
     if(peer.replicating[msg.author] && peer.replicating[msg.author].rx) {
       peer.notes = peer.notes || {}
-      peer.notes[msg.author] = -clock[msg.author]
+      peer.notes[msg.author] = -state.clock[msg.author]
       peer.replicating[msg.author].rx = false
     }
     return state
@@ -227,7 +231,7 @@ exports.events.notes = function (state, ev) {
 
       //positive seq means "send this to me please"
       peer.replicating[id].tx = seq >= 0
-
+      //console.log('REP', id, peer.replicating[id])
       //in the case we are already ahead, get ready to send them messages.      
       if(seq >= 0 && state.clock[id] > seq) {
         peer.replicating[id].sent = seq
@@ -238,4 +242,5 @@ exports.events.notes = function (state, ev) {
   }
   return state
 }
+
 
