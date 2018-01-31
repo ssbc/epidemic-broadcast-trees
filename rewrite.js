@@ -61,8 +61,9 @@ exports.validate = function (state) {
 
 exports.events = {}
 
-exports.events.initialize = function () {
+exports.events.initialize = function (id) {
   return {
+    id: id,
     clock: null,
     follows: {},
     peers: {},
@@ -150,7 +151,7 @@ exports.events.follow = function (state, ev) {
 
 exports.events.retrive = function (state, msg) {
   //check if any peer requires this msg
-  for(var id in state.peers)
+  for(var id in state.peers) {
     var rep = state.peers[id].replicating[msg.author]
     if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
@@ -158,6 +159,7 @@ exports.events.retrive = function (state, msg) {
       if(rep.sent < state.clock[msg.author])
         state.peers[id].retrive.push(msg.author)
     }
+  }
   return state
 }
 
@@ -240,6 +242,8 @@ exports.events.notes = function (state, ev) {
   }
   return state
 }
+
+
 
 
 
