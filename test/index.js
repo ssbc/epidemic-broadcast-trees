@@ -1,217 +1,184 @@
-var states = require('../state')
-var tape = require('tape')
-var u = require('../util')
+var test = require('tape')
 
-function clone (obj) {
-  return JSON.parse(JSON.stringify(obj))
+var events = require('../rewrite').events
+
+function isObject(o) {
+  return o && 'object' === typeof o
 }
 
-tape('init, receiveNote+, receiveMessage, appendMessage', function (t) {
+function isFunction (f) {
+  return 'function' === typeof f
+}
 
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
+function is (t, actual, expected, path) {
+  if(isFunction(expected))
+    expected.call(actual, path.concat(k))
+  else t.equal(expected, actual, 'expected '+path.join('.')+' to equal:'+actual)
+}
 
-  var state = states.init(2)
-  t.equal(state.ready, 2) //assume that a request for message 2 has been sent.
+function has (t, actual, expected, path) {
+  path = path || []
 
-  state = states.read(state)
-  
-  //we learn that the remote is up to 10
-  state = states.receiveNote(state, 10)
+  if(!(isObject(actual))) return is(t, actual, expected, path)
 
-  //since when we receive their note we know we are behind
-  //assume they are in tx mode, but we are not.
-  t.equal(state.local.tx, true, 'since we are behind, we should not transmit')
-  t.equal(state.remote.tx, true, 'since remote is ahead, they should transmit')
+  if(!isObject(expected))
+    return t.fail('expected object at path:'+path.join('.'))
 
-  var _state = states.receiveMessage(clone(state), msg)
+  for(var k in expected)
+    has(t, actual[k], expected[k], path.concat(k))
+}
 
-  t.deepEqual(_state, {
-    local: {seq: 2, req: 2, tx: true},
-    remote: {seq: 3, req: 10, tx: true},
-    ready: null,
-    effect: msg
-  })
+test('initialize, connect to new peer', function (t) {
 
-  _state.effect = null //assume this was appended
+  var state = events.initialize()
 
-  _state = states.appendMessage(_state, msg)
-
-  t.deepEqual(_state, {
-    local: {seq: 3, req: 2, tx: true},
-    remote: {seq: 3, req: 10, tx: true},
-    ready: null,
-    effect: null
-  })
-
-
-  t.end()
-})
-
-tape('init, receiveNote-, getMessage, read', function (t) {
-
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
-
-  var state = states.init(10)
-  t.equal(state.ready, 10) //assume that a request for message 2 has been sent.
-
-  state = states.read(state)
-  
-  //we learn that the remote is up to 10
-  state = states.receiveNote(state, 2)
-
-  //since when we receive their note we know we are behind
-  //assume they are in tx mode, but we are not.
-
-  t.deepEqual(state, {
-    local: {seq: 10, req: 10, tx: true},
-    remote: {seq: null, req: 2, tx: true},
-    ready: null,
-    effect: 3
-  })
-
-  state.effect = null //assume this was retrival
-
-  state = states.gotMessage(clone(state), msg)
-
-  t.deepEqual(state, {
-    local: {seq: 10, req: 10, tx: true},
-    remote: {seq: null, req: 2, tx: true},
-    ready: msg,
-    effect: null
-  })
-
-  var data = state.ready //the data to send.
-  state = states.read(state) //hmm, or better symetry if read leaves ready?
-
-  t.deepEqual(state, {
-    local: {seq: 10, req: 10, tx: true},
-    remote: {seq: 3, req: 2, tx: true},
-    ready: null,
-    effect: 4
-  })
-
-  t.end()
-})
-
-tape('init, receiveNote(sync), appendMessage, read, receiveMessage!', function (t) {
-  var state = states.init(2)
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
-
-  state = states.read(state) //in sync with remote
-  t.equal(state.effect, null, 'in sync, so send nothing')
-  state = states.receiveNote(state, 2)
-
-  //if we are both in sync, then both transmit, and one of us will turn off later
-  t.equal(state.local.tx, true, 'transmit because we are in sync')
-  t.equal(state.remote.tx, true, 'transmit because we are both in sync')
-
-  t.deepEqual(state, {
-    local: {seq: 2, req: 2, tx: true},
-    remote: {seq: null, req: 2, tx: true},
-    ready: null,
-    effect: null
-  })
-
-  //message is appended, as if it was created locally,
-  //or received from another peer.
-  state = states.appendMessage(state, msg)
-  t.equal(state.effect, null)
-  t.deepEqual(state, {
-    local: {seq: 3, req: 2, tx: true},
-    remote: {seq: null, req: 2, tx: true},
-    ready: msg,
-    effect: null
-  })
-
-//  return t.end()
-  //the message is sent.
-  state = states.read(state)
-
-  t.equal(state.null)
-  t.equal(state.remote.seq, 3)
-
-  //but they send the same message at the same time.
-  state = states.receiveMessage(state, msg)
-  t.deepEqual(state, {
-    local: {seq: 3, req: 3, tx: true},
-    remote: {seq: 3, req: 3, tx: true},
-    ready: -(msg.sequence+1), //XXX
-    effect: null
-  })
-
-  state = states.read(state)
-
-  t.deepEqual(state, {
-    local: {seq: 3, req: 3, tx: true},
-    remote: {seq: 3, req: 3, tx: false},
-    ready: null,
-    effect: null
-  })
-
-  t.end()
-})
-
-
-tape('init, receiveNote-1, never send', function (t) {
-  var state = states.init(2)
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
-
-  state = states.read(state)
-  t.equal(state.effect, null, 'do not know remote state, so do nothing')
-
-  state = states.receiveNote(state, -1)
+  state = events.connect(state, {id: 'alice'})
   console.log(state)
-  t.equal(state.effect, null, 'remote asked for no send')
+  state = events.peerClock(state, {id: 'alice', value: {}})
+  console.log(state)
 
-  state = states.appendMessage(state, msg)
+  has(t, state, {
+    peers: {
+      alice: { clock: {}, msgs: [], notes: null, replicating: {} },
+    }
+  })
 
-  t.equal(state.effect, null, 'remote asked for no send')
-  t.equal(state.ready, null, 'remote asked for no send')
+  state = events.clock(state, {})
 
-  t.end()
-})
+  state = events.follow(state, {id: 'alice', value: true})
 
+  t.deepEqual(state.follows, {alice: true})
 
-
-tape('init, receiveNote-1, never send', function (t) {
-  var state = states.init(2)
-  var msg = {sequence: 3, author: 'alice', content: 'blah'}
-
-  state = states.receiveNote(state, -1)
-  state = states.read(state)
-  t.equal(state.effect, null, 'do not know remote state, so do nothing')
+  has(t, state.peers.alice, {
+    clock: {},
+    notes: { alice: 0 },
+    replicating: {alice: {rx: true}}
+  }, ['state', 'peers', 'alice'])
 
   console.log(state)
-  t.equal(state.effect, null, 'remote asked for no send')
 
-  state = states.appendMessage(state, msg)
+  //lets say we send the note
 
-  t.equal(state.effect, null, 'remote asked for no send')
-  t.equal(state.ready, null, 'remote asked for no send')
+  state = events.notes(state, {id: 'alice', value: {alice: 2}})
+  has(t, state, {
+    clock: {},
+    follows: {alice: true},
+    peers: {
+      alice: {
+        clock: {alice: 2},
+        replicating: {
+          alice: {
+            rx: true, tx: true
+          }
+        }
+      }
+    }
+  })
+
+  var msg = {author: 'alice', sequence: 1, content: {}}
+  state = events.receive(state, {id: 'alice', value:msg})
+
+  has(t, state, {
+    peers: {
+      alice: {
+        clock: {alice: 2},
+        replicating: {
+          alice: {
+            rx: true, tx: true
+          }
+        }
+      }
+    },
+    receive: [msg],
+  })
+
+  var msg = state.receive.shift()
+
+  state = events.append(state, msg)
+
+  console.log(state)
+
+  has(t, state, {
+    clock: {alice: 1}
+  })
+
+  var msg2 = {author: 'alice', sequence: 2, content: {}}
+  state = events.receive(state, {id: 'alice', value:msg2})
+  state = events.append(state, state.receive.shift())
+
+  has(t, state, {
+    clock: {alice: 2}
+  })
+
+  var msg3 = {author: 'alice', sequence: 3, content: {}}
+  state = events.receive(state, {id: 'alice', value:msg3})
+  state = events.append(state, state.receive.shift())
+
+  has(t, state, {
+    clock: {alice: 3}
+  })
 
   t.end()
+
 })
 
-//NOTE: requesting 0 means "I don't have anything from this feed, please send it"
-//and a -ve number means "I have this but stop sending, because I have a better source"
-//you can't send -0 because if you have a better source for nothing
-//that means you don't want it. which is what -1 means.
-//if you have seq 1, and someone else trys to give it to you,
+test('connect to two peers, append message one send, one note', function (t) {
 
-tape('init-1', function (t) {
-  var state = states.init(-1)
-  t.equal(state.ready, -1)
-  state = states.read(state)
-  t.equal(state.local.req, -1)
-  t.end()
-})
+  var state = {
+    clock: { alice: 1 },
+    peers: {
+      bob: {
+        clock: { alice: 1 },
+        msgs: [], retrive: [],
+        replicating: {
+          alice: {
+            rx: true, tx: true, sent: 1, retrive: false
+          }
+        }
+      },
+      charles: {
+        clock: {alice: 1},
+        msgs: [], retrive: [],
+        replicating: {
+          alice: {
+            rx: false, tx: false, sent: 1, retrive: false
+          }
+        }
+      }
+    }
+  }
 
-tape('init-2', function (t) {
-  var state = states.init(-2)
-  t.equal(state.ready, -2)
-  state = states.read(state)
-  t.equal(state.local.req, 1)
+  var msg = {author: 'alice', sequence: 2, content: {}}
+  state = events.append(state, msg)
+
+  has(t, state, {
+    clock: { alice: 2 },
+    peers: {
+      bob: {
+        clock: { alice: 1 },
+        msgs: [msg],
+        retrive: [],
+        replicating: {
+          alice: {
+            rx: true, tx: true, sent: 2, retrive: false
+          }
+        }
+      },
+      charles: {
+        clock: { alice: 1 },
+        notes: { alice: -3 },
+        retrive: [],
+        replicating: {
+          alice: {
+            rx: false, tx: false, sent: 1
+          }
+        }
+      }
+    }
+  })
+
   t.end()
+
 })
 
 

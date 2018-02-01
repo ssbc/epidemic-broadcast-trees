@@ -1,5 +1,5 @@
 
-var events = require('../../rewrite').events
+var events = require('../rewrite').events
 var RNG = require('rng')
 
 var log
