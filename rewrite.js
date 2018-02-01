@@ -172,13 +172,10 @@ exports.events.append = function (state, msg) {
 
   state.clock[msg.author] = msg.sequence
 
-  console.log('APPEND_PEERS', state.id, Object.keys(state.peers))
-
   for(var id in state.peers) {
     var peer = state.peers[id]
     var rep = peer.replicating[msg.author]
-    console.log('REP', state.id+'->'+id, rep, msg)
-    if(rep && rep.tx && rep.sent == msg.sequence - 1) {
+    if(rep && rep.tx && rep.sent == msg.sequence - 1 && msg.sequence > peer.clock[msg.author]) {
       peer.msgs.push(msg)
       rep.sent++
     }
@@ -197,6 +194,10 @@ exports.events.receive = function (state, ev) {
   //receive a message, validate and append.
   //if this message is forked, disable this feed
 
+  //we _know_ that this peer is upto at least this message now.
+  //(but maybe they already told us they where ahead further)
+  state.peers[ev.id].clock[msg.author] = Math.max(state.peers[ev.id].clock[msg.author], msg.sequence)
+
   //if this message has already been seen, ignore.
   if(state.clock[msg.author] > msg.sequence) {
     var peer = state.peers[ev.id]
@@ -207,10 +208,6 @@ exports.events.receive = function (state, ev) {
     }
     return state
   }
-
-  //we _know_ that this peer is upto at least this message now.
-  //(but maybe they already told us they where ahead further)
-  state.peers[ev.id].clock[msg.author] = Math.max(state.peers[ev.id].clock[msg.author], msg.sequence)
 
   state.receive.push(msg)
 
@@ -240,7 +237,6 @@ exports.events.notes = function (state, ev) {
       //in the case we are already ahead, get ready to send them messages.      
       peer.replicating[id].sent = seq
       if(seq >= 0 && state.clock[id] > seq) {
-//        peer.replicating[id].sent = seq
         peer.retrive.push(id)
       }
 
