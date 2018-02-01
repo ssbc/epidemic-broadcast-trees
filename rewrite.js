@@ -1,67 +1,5 @@
 
-function isFeed (id) {
-  return 'string' === typeof id
-}
-
-function isPositiveInteger (int) {
-  return int >= 0 && Number.isInteger(int)
-}
-
-var isInteger = Number.isInteger
-
-function isObject(o) {
-  return o && 'object' === typeof o
-}
-
-function assertKeys(obj, keyAssert, valueAssert) {
-  for(var k in obj) {
-    keyAssert(k); valueAssert(obj[k])
-  }
-}
-
-function _assert(fn, msg) {
-  return function (value) {
-    assert.ok(fn(value), msg)
-  }
-}
-
-exports.validate = function (state) {
-  assert.ok(isObject(state.clock), 'state has clock object')
-  assert.ok(isObject(state.connections), 'state has connections object')
-  assertKeys(state.clock,
-    _assert(isFeed, 'clock key is feed id'),
-    _assert(isPositiveInteger, 'clock value is positive integer')
-  )
-  assertKeys(state.connections,
-    _assert(isFeed, 'clock key is feed id'),
-    _assert(function (con) {
-      assertKeys(con.clock,
-        _assert(isFeed, 'connection.clock key is feed id'),
-        _assert(isInteger, 'connection.clock value is integer')
-      )
-      assert.ok(Array.isArray(con.msgs), 'connection.msgs is array')
-      assertKeys(con.notes,
-        _assert(ref.isFeed, 'connection.notes key is feed id'),
-        _assert(isInteger, 'connection.notes value is integer')
-      )
-
-      //TODO check that notes are in sync with other data structures.
-
-      for(var id in con.notes) {
-        var c = state.clock[id], n = con.notes[id], f = state.following[id]
-        if(!(n == f ? ( c == null ? 0 : state.replicating[id].rx ? c : ~c ) : -1)) {
-          throw new Error('incorrect notes: '+id+':'+n+', clock:'+c+', following:'+f, ', receive:'+state.replicating[id].rx)
-        }
-      }
-
-      return true
-    }, 'connection value is correct')
-  )
-}
-
-exports.events = {}
-
-exports.events.initialize = function (id) {
+exports.initialize = function (id) {
   return {
     id: id,
     clock: null,
@@ -71,13 +9,13 @@ exports.events.initialize = function (id) {
   }
 }
 
-exports.events.clock = function (state, clock) {
+exports.clock = function (state, clock) {
   state.clock = clock
 
   return state
 }
 
-exports.events.connect = function (state, ev) {
+exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
   state.peers[ev.id] = {
     clock: null,
@@ -90,7 +28,7 @@ exports.events.connect = function (state, ev) {
   return state
 }
 
-exports.events.peerClock = function (state, ev) {
+exports.peerClock = function (state, ev) {
   if(!state.peers[ev.id])
     throw new Error('peerClock called for:'+ev.id + ' but only connected to:'+ Object.keys(state.peers))
   var peer = state.peers[ev.id]
@@ -115,7 +53,7 @@ exports.events.peerClock = function (state, ev) {
   return state
 }
 
-exports.events.follow = function (state, ev) {
+exports.follow = function (state, ev) {
   if(state.follows[ev.id] !== ev.value) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
@@ -149,7 +87,7 @@ exports.events.follow = function (state, ev) {
   return state
 }
 
-exports.events.retrive = function (state, msg) {
+exports.retrive = function (state, msg) {
   //check if any peer requires this msg
   for(var id in state.peers) {
     var rep = state.peers[id].replicating[msg.author]
@@ -166,7 +104,7 @@ exports.events.retrive = function (state, msg) {
   return state
 }
 
-exports.events.append = function (state, msg) {
+exports.append = function (state, msg) {
   //check if any peer requires this msg
   if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
 
@@ -189,7 +127,7 @@ exports.events.append = function (state, msg) {
   return state
 }
 
-exports.events.receive = function (state, ev) {
+exports.receive = function (state, ev) {
   var msg = ev.value
   //receive a message, validate and append.
   //if this message is forked, disable this feed
@@ -216,7 +154,7 @@ exports.events.receive = function (state, ev) {
   return state
 }
 
-exports.events.notes = function (state, ev) {
+exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
   var peer = state.peers[ev.id]
@@ -244,4 +182,33 @@ exports.events.notes = function (state, ev) {
   }
   return state
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

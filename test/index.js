@@ -1,6 +1,6 @@
 var test = require('tape')
 
-var events = require('../rewrite').events
+var events = require('../rewrite')
 
 function isObject(o) {
   return o && 'object' === typeof o

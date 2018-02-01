@@ -1,6 +1,6 @@
 
 var createSimulator = require('./simulator')
-var events = require('../rewrite').events
+var events = require('../rewrite')
 
 var test = require('tape')
 
