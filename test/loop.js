@@ -4,9 +4,9 @@ var events = require('../rewrite')
 
 var test = require('tape')
 
-function createTest (seed) {
+function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed)
+    var tick = createSimulator(seed, log)
 
     var network = {}
     var alice = network['alice'] = tick.createPeer('alice')
@@ -26,16 +26,8 @@ function createTest (seed) {
     charles.follow('alice')
 
     alice.connect(bob)
-    alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
-    bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
-
     alice.connect(charles)
-    alice.state = events.peerClock(alice.state, {id: 'charles', value: {}})
-    charles.state = events.peerClock(charles.state, {id: 'alice', value:{}})
-
     bob.connect(charles)
-    bob.state = events.peerClock(bob.state, {id: 'charles', value: {}})
-    charles.state = events.peerClock(charles.state, {id: 'bob', value:{}})
 
     while(tick(network)) ;
 
@@ -43,6 +35,9 @@ function createTest (seed) {
 
     t.deepEqual(bob.store, alice.store, 'alice<->bob')
     t.deepEqual(charles.store, alice.store, 'charles<->alice')
+
+    if(log) tick.log()
+
     t.end()
   })
 }
@@ -52,7 +47,10 @@ if(isNaN(seed))
   for(var i = 0; i < 100; i++)
     createTest(i)
 else
-  createTest(+seed)
+  createTest(+seed, true)
+
+
+
 
 
 

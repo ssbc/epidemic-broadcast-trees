@@ -26,12 +26,7 @@ function createTest (seed, log) {
     charles.follow('alice')
 
     alice.connect(bob)
-    alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
-    bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
-
     bob.connect(charles)
-    bob.state = events.peerClock(bob.state, {id: 'charles', value: {}})
-    charles.state = events.peerClock(charles.state, {id: 'bob', value:{}})
 
     while(tick(network)) ;
 
@@ -49,6 +44,8 @@ if(isNaN(seed))
     createTest(i, false)
 else
   createTest(+seed, true)
+
+
 
 
 

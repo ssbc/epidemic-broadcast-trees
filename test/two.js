@@ -4,9 +4,9 @@ var events = require('../rewrite')
 
 var test = require('tape')
 
-function createTest (seed) {
+function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed)
+    var tick = createSimulator(seed, log)
 
     var network = {}
     var alice = network['alice'] = tick.createPeer('alice')
@@ -28,26 +28,55 @@ function createTest (seed) {
     alice.connect(bob)
     alice.connect(charles)
 
-    alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
-    bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
-
-    alice.state = events.peerClock(alice.state, {id: 'charles', value: {}})
-    charles.state = events.peerClock(charles.state, {id: 'alice', value:{}})
-
     while(tick(network)) ;
 
     //should have set up peer.replicatings to tx/rx alice
 
     t.deepEqual(bob.store, alice.store, 'alice<->bob')
     t.deepEqual(charles.store, alice.store, 'charles<->alice')
+
+    alice.disconnect(charles)
+
+    alice.append({author: 'alice', sequence: 4, content: {}})
+    alice.append({author: 'alice', sequence: 5, content: {}})
+
+    while(tick(network)) ;
+
+    t.deepEqual(bob.store, alice.store, 'alice<->bob')
+    t.notDeepEqual(charles.store, alice.store, 'alice<->bob')
+
+    bob.connect(charles)
+
+    alice.append({author: 'alice', sequence: 6, content: {}})
+
+    while(tick(network)) ;
+
+    t.deepEqual(bob.store, alice.store, 'alice<->bob')
+    t.deepEqual(charles.store, alice.store, 'charles<->alice')
+
+    var totals = tick.output.reduce(function (a, b) {
+      if(!a) a = [0,0,0]; a[0] ++; a[1 + (+b.msg)] ++
+      return a
+    }, null)
+
+    t.equal(totals[1], 3*2, 'number of handshakes sent is connections*2')
+    t.equal(totals[2], 6*(3-1), 'number of msgs sent is msgs*(peers-1)')
+
+    if(log)
+      console.log(
+        tick.output.map(function (e) {
+          if(e.msg)
+            return e.from+'>'+e.to+':'+e.value.sequence
+          else
+            return e.from+'>'+e.to+':'+JSON.stringify(e.value)
+        }).join('\n')
+      )
+
     t.end()
   })
 }
 
 var seed = process.argv[2]
 if(isNaN(seed)) for(var i = 0; i < 100; i++) createTest(i)
-else createTest(+seed)
-
-
-
+else createTest(+seed, true)
 
