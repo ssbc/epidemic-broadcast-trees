@@ -15,11 +15,14 @@ module.exports = function (seed, _log) {
 log = _log
 var rng = new RNG.MT(seed || 0)
 
+var output = []
 
 function createPeer(id) {
   var store = {}, state = events.initialize(id), self
+  var pClock = {}
   return self = {
     id: id,
+    clocks: pClock,
     store: store,
     state: state,
     retriving: [],
@@ -32,7 +35,16 @@ function createPeer(id) {
     },
     connect: function (other) {
       state = events.connect(state, {id: other.id})
+      state = events.peerClock(state, {id: other.id, value: pClock[other.id] || {}})
       other.state = events.connect(other.state, {id: this.id})
+      other.state = events.peerClock(other.state, {id: id, value: other.clocks[id] || {}})
+    },
+    disconnect: function (other) {
+      pClock[other.id] = state.peers[other.id].clock
+      other.clocks[id] = other.state.peers[id].clock
+
+      state = events.disconnect(state, {id: other.id})
+      other.state = events.disconnect(other.state, {id: this.id})
     },
     follow: function (peer, value) {
       state = events.follow(state, {id: peer, value: value !== false})
@@ -64,7 +76,6 @@ function shuffle (ary) {
     ary[j] = tmp
   }
   return ary
-//  return ary.slice().reverse().sort(function () { return rng.random() - 0.5 })
 }
 
 function randomFind(obj, iter) {
@@ -84,6 +95,13 @@ function tick (network) {
     return randomFind([function () {
       //append(receive), retrive, retrive_cb
       return randomFind([function () {
+        return randomFind(peer.state.peers, function (key, p2p) {
+          if(!p2p.clock) {
+            peer.state = events.peerClock(peer.state, {id: key, value: {}})
+            return true
+          }
+        })
+      }, function () {
         if(peer.state.receive.length) {
           var msg = peer.state.receive.shift()
           peer.append(msg)
@@ -117,16 +135,18 @@ function tick (network) {
       }])
     }, function () { //network ops
       return randomFind(peer.state.peers, function (remote_id, remote) {
-        if(remote.msgs.length) {
-          network[remote_id].state =
-            events.receive(network[remote_id].state, {id: id, value: remote.msgs.shift() })
-          return true
-        }
-        else if(remote.notes) {
+        if(remote.notes) {
           var notes = remote.notes
           remote.notes = null
           network[remote_id].state =
             events.notes(network[remote_id].state, {id: id, value: notes})
+          output.push({from: id, to: remote_id, value: notes, msg: false})
+          return true
+        }
+        else if(remote.msgs.length) {
+          output.push({from: id, to: remote_id, value: remote.msgs[0], msg: true})
+          network[remote_id].state =
+            events.receive(network[remote_id].state, {id: id, value: remote.msgs.shift() })
           return true
         }
       })
@@ -134,9 +154,22 @@ function tick (network) {
   })
   //TODO: test random network connections.
 }
-
   tick.createPeer = createPeer
+  tick.output = output
+
+  tick.log = function () {
+    console.log(
+      tick.output.map(function (e) {
+        if(e.msg)
+          return e.from+'>'+e.to+':'+e.value.author[0]+e.value.sequence
+        else
+          return e.from+'>'+e.to+':'+JSON.stringify(e.value)
+      }).join('\n')
+    )
+  }
   return tick
 
 }
+
+
 
