@@ -156,8 +156,11 @@ exports.events.retrive = function (state, msg) {
     if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
       state.peers[id].msgs.push(msg)
-      if(rep.sent < state.clock[msg.author])
+      if(rep.sent < state.clock[msg.author]) {
+        //use continue, not return because we still need to loop through other peers.
+        if(~state.peers[id].retrive.indexOf(msg.author)) continue
         state.peers[id].retrive.push(msg.author)
+      }
     }
   }
   return state
@@ -169,10 +172,13 @@ exports.events.append = function (state, msg) {
 
   state.clock[msg.author] = msg.sequence
 
+  console.log('APPEND_PEERS', state.id, Object.keys(state.peers))
+
   for(var id in state.peers) {
     var peer = state.peers[id]
     var rep = peer.replicating[msg.author]
-    if(rep.tx && rep.sent == msg.sequence - 1) {
+    console.log('REP', state.id+'->'+id, rep, msg)
+    if(rep && rep.tx && rep.sent == msg.sequence - 1) {
       peer.msgs.push(msg)
       rep.sent++
     }
@@ -231,10 +237,10 @@ exports.events.notes = function (state, ev) {
 
       //positive seq means "send this to me please"
       peer.replicating[id].tx = seq >= 0
-      //console.log('REP', id, peer.replicating[id])
       //in the case we are already ahead, get ready to send them messages.      
+      peer.replicating[id].sent = seq
       if(seq >= 0 && state.clock[id] > seq) {
-        peer.replicating[id].sent = seq
+//        peer.replicating[id].sent = seq
         peer.retrive.push(id)
       }
 
@@ -242,9 +248,4 @@ exports.events.notes = function (state, ev) {
   }
   return state
 }
-
-
-
-
-
 
