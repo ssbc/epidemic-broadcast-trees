@@ -6,18 +6,18 @@ var log
 
 for(var k in events) (function (fn, k) {
   events[k] = function (state, value) {
-    if(log) console.log(k.toUpperCase(), value)
+    if(log) console.log(k.toUpperCase()+'('+state.id+')', value)
     return fn(state, value)
   }
 })(events[k],k)
 
 module.exports = function (seed, _log) {
-log = _log = true
+log = _log
 var rng = new RNG.MT(seed || 0)
 
 
 function createPeer(id) {
-  var store = {}, state = events.initialize(), self
+  var store = {}, state = events.initialize(id), self
   return self = {
     id: id,
     store: store,
@@ -38,16 +38,11 @@ function createPeer(id) {
       state = events.follow(state, {id: peer, value: value !== false})
     },
     append: function (msg) {
-      if(msg.sequence == 1) {
-        if(store[msg.author]) throw new Error('already has author:'+msg.author)
-        store[msg.author] = [msg]
+      var ary = store[msg.author] = store[msg.author] || []
+      if(msg.sequence === ary.length + 1) {
+        ary.push(msg)
+        state = events.append(state, msg)
       }
-      else if(msg.sequence != store[msg.author].length+1)
-        throw new Error('expected msg: '+msg.author+':'+(store[msg.author].length +1)+ ' but got:'+msg.sequence)
-      else
-        store[msg.author].push(msg)
-
-      state = events.append(state, msg)
     }
   }
 }
@@ -62,7 +57,14 @@ function random () {
 }
 
 function shuffle (ary) {
-  return ary.sort(function () { return rng.random() - 0.5 })
+  for(var i = 0; i < ary.length; i++) {
+    var j = ~~(rng.random()*ary.length)
+    var tmp = ary[i]
+    ary[i] = ary[j]
+    ary[j] = tmp
+  }
+  return ary
+//  return ary.slice().reverse().sort(function () { return rng.random() - 0.5 })
 }
 
 function randomFind(obj, iter) {
@@ -93,8 +95,16 @@ function tick (network) {
           p2p.retrive = shuffle(p2p.retrive)
           if(p2p.retrive.length) {
             var peer_id = p2p.retrive.shift()
-            var msg = peer.store[peer_id][p2p.replicating[peer_id].sent]
-            peer.retriving.push(msg)
+            //it's possible that two peers need to retrive the same message at the same time
+            //this may mean that the retrival is queued twice.
+            var rep = p2p.replicating[peer_id]
+            if(rep.tx && rep.sent < peer.state.clock[peer_id]) {
+              var msg = peer.store[peer_id][rep.sent]
+              if(msg == null) {
+                throw new Error('null msg!, clock:'+peer.state.clock[peer_id]+ ', id:'+peer_id)
+              }
+              peer.retriving.push(msg)
+            }
             return true
           }
         })
