@@ -28,6 +28,13 @@ exports.connect = function (state, ev) {
   return state
 }
 
+exports.disconnect = function (state, ev) {
+  delete state.peers[ev.id]
+  return state
+}
+
+//this is when the stored peer clock has been loaded from the local database.
+//note, this must be handled before any messages are received.
 exports.peerClock = function (state, ev) {
   if(!state.peers[ev.id])
     throw new Error('peerClock called for:'+ev.id + ' but only connected to:'+ Object.keys(state.peers))
@@ -135,7 +142,11 @@ exports.receive = function (state, ev) {
   //we _know_ that this peer is upto at least this message now.
   //(but maybe they already told us they where ahead further)
   state.peers[ev.id].clock[msg.author] = Math.max(state.peers[ev.id].clock[msg.author], msg.sequence)
-
+  state.peers[ev.id].replicating[msg.author].sent =
+    Math.max(
+      state.peers[ev.id].replicating[msg.author].sent,
+      msg.sequence
+    )
   //if this message has already been seen, ignore.
   if(state.clock[msg.author] > msg.sequence) {
     var peer = state.peers[ev.id]
@@ -158,6 +169,9 @@ exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
   var peer = state.peers[ev.id]
+
+  if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
+
   for(var id in clock) {
     var seq = clock[id]
     peer.clock[id] = seq
@@ -177,38 +191,8 @@ exports.notes = function (state, ev) {
       if(seq >= 0 && state.clock[id] > seq) {
         peer.retrive.push(id)
       }
-
     }
   }
   return state
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
