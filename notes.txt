@@ -131,15 +131,20 @@ if you have seq 1, and someone else trys to give it to you,
 TAKE 2. a lot of what we need to run a real ebt network ended up in ssb-ebt, and it should
 be in this repo so it's easy to extend this to other protocols.
 
-clock: {id: seq,...},
+clock: {<id>: seq,...},
+following: {<id>: boolean}
 connections: {
-  peer_id: {
-    clock: {id: +/- seq,...},
+  <peer_id>: {
+    clock: {<id>: +/- seq,...},
     msgs: [], //messages that can be sent.
     notes: {id: +/- seq, ...}, //notes to send. gets replaced with {} after sending.
-    next: [id,...],
+    next: [id,...], //list of feeds that are in retrive mode
     replicating: {
-      id: {tx: bool, rx: bool, retrive: bool, sent: seq},...
+      <id>: {
+        tx: bool, rx: bool,
+        retrive: bool, //get the next item from the database
+        sent: seq
+      },...
     }
   }
 },
@@ -157,8 +162,5 @@ connections: {
 }
 
 40k + N*(80k + M(10*4+9+4 = 53))
-
-
-
 
 
