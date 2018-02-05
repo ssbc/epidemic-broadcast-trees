@@ -183,25 +183,27 @@ test('connect to two peers, append message one send, one note', function (t) {
 
 test('reply to any clock they send', function (t) {
   var state = {
-    clock: { alice: 3, bob: 2 },
-    follows: { alice: true, bob: true },
-    peers: {
-//      bob: {
-//        clock: {alice: 3},
-//        msgs: [], retrive: [],
-//        notes: null,
-//        replicating: {}
-//      }
-    }
+    clock: { alice: 3, bob: 2, charles: 3 },
+    follows: { alice: true, bob: true, charles: true, darlene: false },
+    peers: {}
   }
 
   state = events.connect(state, {id: 'bob'})
-  state = events.peerClock(state, {id: 'bob', value:{alice: 3}})
-  state = events.notes(state, {id: 'bob', value: {alice: 3}})
+  state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
+  t.deepEqual(state.peers.bob.notes, {bob: 2, charles: 3})
 
-  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2})
+  state = events.notes(state, {id: 'bob', value: {alice: 3, darlene: 4}})
+
+  //notes hasn't been sent, so this is merged with previous
+  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2, charles: 3, darlene: -1})
 
   t.end()
-
 })
+
+
+
+
+
+
+
 
