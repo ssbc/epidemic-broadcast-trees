@@ -47,7 +47,7 @@ exports.peerClock = function (state, ev) {
   //create a replication for that peer.
 
   for(var id in state.follows) {
-    if(clock[id] == null || clock[id] != state.clock[id]) {
+    if(state.follows[id] && clock[id] == null || clock[id] != state.clock[id]) {
       peer.notes = peer.notes || {}
       peer.notes[id] = state.clock[id] || 0
       peer.replicating = peer.replicating || {}
@@ -197,4 +197,5 @@ exports.notes = function (state, ev) {
   }
   return state
 }
+
 
