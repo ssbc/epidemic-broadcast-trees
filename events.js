@@ -181,9 +181,11 @@ exports.notes = function (state, ev) {
       peer.notes[id] = -1
     }
     else {
-      if(!peer.replicating[id])
+      if(!peer.replicating[id]) {
         peer.replicating[id] = {tx: true, rx: true, sent: seq}
-
+        peer.notes = peer.notes || {}
+        peer.notes[id] = state.clock[id]
+      }
       //positive seq means "send this to me please"
       peer.replicating[id].tx = seq >= 0
       //in the case we are already ahead, get ready to send them messages.      
