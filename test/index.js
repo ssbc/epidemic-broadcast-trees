@@ -1,6 +1,6 @@
 var test = require('tape')
 
-var events = require('../rewrite')
+var events = require('../events')
 
 function isObject(o) {
   return o && 'object' === typeof o
@@ -181,6 +181,27 @@ test('connect to two peers, append message one send, one note', function (t) {
 
 })
 
+test('reply to any clock they send', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2 },
+    follows: { alice: true, bob: true },
+    peers: {
+//      bob: {
+//        clock: {alice: 3},
+//        msgs: [], retrive: [],
+//        notes: null,
+//        replicating: {}
+//      }
+    }
+  }
 
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{alice: 3}})
+  state = events.notes(state, {id: 'bob', value: {alice: 3}})
 
+  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2})
+
+  t.end()
+
+})
 

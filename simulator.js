@@ -1,5 +1,5 @@
 
-var events = require('./rewrite')
+var events = require('./events')
 var RNG = require('rng')
 
 var log
@@ -168,8 +168,5 @@ function tick (network) {
     )
   }
   return tick
-
 }
-
-
 
