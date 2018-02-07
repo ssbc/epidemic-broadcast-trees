@@ -30,10 +30,13 @@ module.exports = function (opts) {
         console.log('could not retrive msg:', err)
       }
     },
+    onAppend: function (msg) {
+      self.state = events.append(self.state, msg)
+      self.update()
+    },
     _append: function (err, msg) {
       if(msg) {
-        self.state = events.append(self.state, msg)
-        self.update()
+        self.onAppend(msg)
       }
       else
         //this definitely can happen.
@@ -60,4 +63,5 @@ module.exports = function (opts) {
   }
   return self
 }
+
 

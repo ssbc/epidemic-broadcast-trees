@@ -12,7 +12,7 @@ function create (id) {
       cb(new Error('out of order'))
     else {
       store[msg.author].push(msg)
-      p._append(null, msg)
+      p.onAppend(msg)
       cb(null, msg)
     }
   }
@@ -47,7 +47,6 @@ test('a<->b', function (t) {
   var bs = bob.createStream('alice')
 
   as.pipe(bs).pipe(as)
-  console.log(as)
 
   alice.append({author: 'alice', sequence: 1, content: 'hello'}, function () {})
   bob.append({author: 'bob', sequence: 1, content: 'hello'}, function () {})
@@ -59,3 +58,4 @@ test('a<->b', function (t) {
   t.end()
 
 })
+
