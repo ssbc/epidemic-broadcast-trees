@@ -20,7 +20,7 @@ exports.connect = function (state, ev) {
   state.peers[ev.id] = {
     clock: null,
     msgs: [],
-    receive: [], retrive: [],
+    retrive: [],
     notes: null,
     replicating: {}
   }
@@ -197,5 +197,8 @@ exports.notes = function (state, ev) {
   }
   return state
 }
+
+
+
 
 
