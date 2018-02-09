@@ -181,7 +181,7 @@ test('connect to two peers, append message one send, one note', function (t) {
 
 })
 
-test('reply to any clock they send', function (t) {
+test('reply to any clock they send, 1', function (t) {
   var state = {
     clock: { alice: 3, bob: 2, charles: 3 },
     follows: { alice: true, bob: true, charles: true, darlene: false },
@@ -195,12 +195,12 @@ test('reply to any clock they send', function (t) {
   state = events.notes(state, {id: 'bob', value: {alice: 3, darlene: 4}})
 
   //notes hasn't been sent, so this is merged with previous
-  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2, charles: 3, darlene: -1})
+  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2, charles: 3, darlene: -1})
 
   t.end()
 })
 
-test('reply to any clock they send', function (t) {
+test('reply to any clock they send, 2', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
     follows: { alice: true, bob: true},
@@ -214,10 +214,10 @@ test('reply to any clock they send', function (t) {
   state = events.notes(state, {id: 'bob', value: {alice: 3}})
 
   //notes hasn't been sent, so this is merged with previous
-  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2})
+  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2})
 
   state = events.follow(state, {id: 'charles',value: true})
-  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2, charles: 0})
+  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2, charles: 0})
 
   t.end()
 })
