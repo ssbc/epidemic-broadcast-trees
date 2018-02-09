@@ -37,7 +37,7 @@ EBTStream.prototype.write = function (data) {
 
 EBTStream.prototype.end = function (err) {
   this.peer.state =
-    events.disconnect(this.peer.state, {id: remote})
+    events.disconnect(this.peer.state, {id: this.remote})
 
   //remove from the peer...
   delete this.peer.streams[this.remote]
