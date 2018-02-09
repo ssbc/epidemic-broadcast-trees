@@ -11,125 +11,6 @@ it's intended to be decoupled sufficiently to use for other applications.
 
 ## example
 
-A simple example is a chatroom - here we just store user messages in arrays.
-
-to create an instance of this protocol for your application, you need to pass in
-a `vectorClock` object, and `get` and `append` functions.
-(Note, that the functions need to be async - this is so that we can use it for bigger
-things like replicating databases)
-
-The `vectorClock` is a map of the ids of all the nodes in the system, with the sequence
-numbers they are currently up to.
-
-`get` takes a id, a sequence, and a callback.
-`append` takes a message object.
-The message object should have `{author: id, sequence: integer, content: ...}`
-
-Where content can be any string or serializable js value.
-
-The returned stream will also have an `onAppend` method, this should be called when ever
-messages are appended to the structure, whether they where created locally or added with `append`.
-the `onAppend` should be called immediately before calling append's callback.
-
-In this example, we'll use [observables](https://github.com/dominictarr/obv) to call
-`onAppend`  this means we can connect each peer to multiple others and it will work great!
-
-``` js
-var pull = require('pull-stream')
-var createEbtStream = require('epidemic-broadcast-trees')
-var Obv = require('obv')
-//create a datamodel for a reliable chat room.
-
-function createChatModel (id, log) {
-  //in this example, logs can be a map of arrays,
-  var logs = {}
-  if(id) logs[id] = log || []
-
-  var onAppend = Obv()
-  return {
-    logs: logs,
-    append: function append (msg) {
-      (logs[msg.author] = logs[msg.author] || []).push(msg)
-      onAppend.set(msg)
-    },
-    onAppend: onAppend
-  }
-}
-
-function createStream(chat) {
-
-  //so the vector clock can be
-  var vectorClock = {}
-  for(var k in chat.logs)
-    vectorClock[k] = chat.logs[k].length
-
-  //observables are like an event emitter but with a stored value
-  //and only one value per instance (instead of potentially many named events)
-
-
-  var stream = createEbtStream(
-    //pass a get(id, seq, cb)
-    function (id, seq, cb) {
-      if(!chat.logs[id] || !chat.logs[id][seq-1])
-        return cb(new Error('not found'))
-      cb(null, chat.logs[id][seq-1])
-    },
-    //pass append(msg, cb)
-    function (msg, cb) {
-      chat.append(msg)
-      cb()
-    }
-  ) ({
-    seqs: vectorClock,
-  })
-
-  chat.onAppend(stream.onAppend)
-
-  return stream
-}
-
-var alice = createChatModel('alice', [])
-var bob = createChatModel('bob')
-
-var as = createStream(alice)
-var bs = createStream(bob)
-
-pull(as, bs, as)
-
-//have bob get ready to receive something
-bob.onAppend(function (msg) {
-  console.log('msg at bob:', msg)
-})
-
-//have alice send a message to bob
-alice.append({author: 'alice', sequence: 1, content: 'hello bob!'})
-
-```
-
-## api
-
-``` js
-var createStream = require('epidemic-broadcast-trees')
-
-var stream = createStream(seqs, get, append, onChange, callback)
-```
-### createStream(seqs, get, append, onChange, callback) => stream
-
-* `seqs` is an object that maps `id` to `sequence`.
-this represents who you want to follow initially.
-`{<id>:<sequence>,..}`
-* `get(id, seq, cb)` is an async function that gets the message by a feed at a particular sequence number.
-* `append(msg, callback)` an async function that appends a single message to the log.
-* `onChange` a function that is called each time the state changes. This is useful to call `stream.progress()`
-* `callback(err)` is called when the replication connection ends.
-
-### stream
-
-A duplex pull-stream returned by the `createStream` method, it
-also has a few extra methods.
-
-#### `stream.onAppend(msg)`
-sync function that _must_ be called when a message is added to the local database.
 
 #### `stream.progress()`
 
@@ -167,6 +48,9 @@ it easy to represent what messages have not been seen using just a incrementing 
 ## License
 
 MIT
+
+
+
 
 
 
