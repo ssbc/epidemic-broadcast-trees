@@ -46,13 +46,20 @@ test('a<->b', function (t) {
   var as = alice.createStream('bob')
   var bs = bob.createStream('alice')
 
+  console.log('initial.alice:',alice.progress())
+  console.log('initial.bob  :',bob.progress())
+
   as.pipe(bs).pipe(as)
+
 
   alice.append({author: 'alice', sequence: 1, content: 'hello'}, function () {})
   bob.append({author: 'bob', sequence: 1, content: 'hello'}, function () {})
 
   console.log(bob.store)
   console.log(alice.store)
+
+  console.log('final.alice:',alice.progress())
+  console.log('final.bob  :',bob.progress())
 
   t.deepEqual(alice.store, bob.store)
   t.end()

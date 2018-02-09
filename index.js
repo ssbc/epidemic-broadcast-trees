@@ -1,5 +1,6 @@
 var Stream = require('./stream')
 var events = require('./events')
+var progress = require('./progress')
 
 module.exports = function (opts) {
   var state = events.initialize(opts.id)
@@ -8,6 +9,9 @@ module.exports = function (opts) {
     id: opts.id,
     streams: {},
     state: state,
+    progress: function () {
+      return progress(state)
+    },
     request: function (id, follows) {
       self.state = events.follow(self.state, {id: id, value: follows !== false})
       self.update()
