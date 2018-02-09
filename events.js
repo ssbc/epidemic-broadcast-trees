@@ -125,7 +125,7 @@ exports.append = function (state, msg) {
       rep.sent++
     }
     //if we are ahead of this peer, and not in tx mode, let them know that.
-    else if(!rep.tx && msg.sequence > peer.clock[msg.author]) {
+    else if(rep && !rep.tx && msg.sequence > peer.clock[msg.author]) {
       peer.notes = peer.notes || {}
       peer.notes[msg.author] = ~msg.sequence
     }
