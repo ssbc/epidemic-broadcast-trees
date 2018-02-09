@@ -174,7 +174,7 @@ exports.notes = function (state, ev) {
 
   for(var id in clock) {
     var seq = clock[id]
-    peer.clock[id] = seq
+    var _seq = peer.clock[id] = seq < -1 ? ~seq : seq
     //check if we are not following this feed.
     if(!state.follows[id]) {
       peer.notes = peer.notes || {}
@@ -197,8 +197,6 @@ exports.notes = function (state, ev) {
   }
   return state
 }
-
-
 
 
 
