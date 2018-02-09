@@ -23,8 +23,8 @@ function create (id) {
       cb(null, {})
     },
     getAt: function (pair, cb) {
-      if(!store[pair[0]] || !store[pair[0]][pair[1]]) cb(new Error('not found'))
-      else cb(null, store[pair[0]][pair[1]])
+      if(!store[pair.id] || !store[pair.id][pair.sequence]) cb(new Error('not found'))
+      else cb(null, store[pair.id][pair.sequence])
     },
     append: append
   })

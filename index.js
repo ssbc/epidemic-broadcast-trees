@@ -9,7 +9,7 @@ module.exports = function (opts) {
     streams: {},
     state: state,
     request: function (id, follows) {
-      self.state = events.follow(self.state, {id: id, value: follows})
+      self.state = events.follow(self.state, {id: id, value: follows !== false})
       self.update()
     },
     createStream: function (remote_id) {
@@ -22,7 +22,7 @@ module.exports = function (opts) {
     _retrive: function (err, msg) {
       if(msg) {
         self.state = events.retrive(self.state, msg)
-        this.update()
+        self.update()
       }
       else {
         //this should never happen.
@@ -45,12 +45,15 @@ module.exports = function (opts) {
     },
     update: function () {
       //retrive next messages.
+      //TODO: respond to back pressure from streams to each peer.
+      //if a given stream is paused, don't retrive more msgs
+      //for that peer/stream.
       for(var id in this.state.peers) {
         var state = this.state.peers[id]
         while(state.retrive.length) {
           var id = state.retrive.shift()
           if(state.replicating[id])
-            opts.getAt({id: id, seq:state.replicating[id].sent+1}, this._retrive)
+            opts.getAt({id: id, sequence:state.replicating[id].sent+1}, this._retrive)
         }
       }
       if(this.state.receive.length) {
