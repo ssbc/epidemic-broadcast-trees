@@ -17,7 +17,9 @@ module.exports = function (opts) {
       self.update()
     },
     createStream: function (remote_id) {
-      var stream = this.streams[remote_id] = new Stream(this, remote_id)
+      var stream = this.streams[remote_id] = new Stream(this, remote_id, function (state) {
+        opts.setClock(remote_id, state.clock)
+      })
       opts.getClock(remote_id, function (err, clock) {
         stream.clock(err ? {} : clock)
       })

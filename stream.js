@@ -7,12 +7,14 @@ function isMsg (m) {
 
 module.exports = EBTStream
 
-function EBTStream (peer, remote) {
+function EBTStream (peer, remote, onClose) {
   this.paused = true //start out paused
   this.remote = remote
   this.peer = peer
   this.peer.state =
     events.connect(this.peer.state, {id: remote})
+
+  this._onClose = onClose
 
   this.sink = this.source = null
 }
@@ -36,9 +38,10 @@ EBTStream.prototype.write = function (data) {
 }
 
 EBTStream.prototype.end = function (err) {
+  var peerState = this.peer.state.peers[this.remote]
   this.peer.state =
     events.disconnect(this.peer.state, {id: this.remote})
-
+  if(this._onClose) this._onClose(peerState)
   //remove from the peer...
   delete this.peer.streams[this.remote]
 }
