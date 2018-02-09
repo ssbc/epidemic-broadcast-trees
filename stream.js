@@ -23,6 +23,7 @@ EBTStream.prototype.clock = function (clock) {
   this.peer.state =
     events.peerClock(this.peer.state, {id: this.remote, value: clock})
   this.paused = false
+  this.peer.update()
   if(this.source) this.source.resume()
 }
 
@@ -71,4 +72,5 @@ EBTStream.prototype.resume = function () {
 }
 
 EBTStream.prototype.pipe = require('push-stream/pipe')
+
 
