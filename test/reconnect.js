@@ -9,16 +9,18 @@ function count (output) {
   }, 0)
 }
 
+function pos (n) {
+  return n < -1 ? ~n : n
+}
+
 function flatten (output) {
   return output.reduce(function (a, b) {
     if(b.msg) return a
     for(var k in b.value)
-      a[b.from][k] = b.value[k]
+      a[b.from][k] = pos(b.value[k])
     return a
   }, {alice: {}, bob: {}})
 }
-
-
 
 function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
@@ -61,8 +63,6 @@ function createTest (seed, log) {
     alice.connect(bob)
     while(tick(network)) ;
 
-
-
     console.log('3', tick.output)
     t.deepEqual(flatten(tick.output), {alice: {alice: 3, bob: 1}, bob: {alice: 3, bob: 2}})
     t.equal(count(tick.output), 3)
@@ -83,4 +83,5 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
 
