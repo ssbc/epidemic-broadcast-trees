@@ -222,3 +222,26 @@ test('reply to any clock they send, 2', function (t) {
   t.end()
 })
 
+test('append when not in tx mode', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: { alice: true, bob: true},
+    peers: {}
+  }
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
+  t.deepEqual(state.peers.bob.notes, {bob: 2})
+
+  state = events.notes(state, {id: 'bob', value: {alice: ~3}})
+  var rep = state.peers.bob.replicating.alice
+  t.equal(rep.tx, false)
+  t.equal(rep.sent, 3)
+
+  console.log(state.peers.bob.replicating)
+
+  state = events.append(state, {author: 'alice', sequence: 4, content: {}})
+  t.deepEqual(state.peers.bob.notes, {bob: 2, alice: ~4})
+  console.log(state.peers.bob.replicating)
+  t.end()
+})
+
