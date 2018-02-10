@@ -82,7 +82,7 @@ exports.follow = function (state, ev) {
         }
         else if(ev.value === true) {
           peer.replicating[ev.id] = {
-            rx: true, tx: null,
+            rx: true, tx: false,
             sent: -1
           }
           peer.notes = peer.notes || {}
@@ -175,22 +175,36 @@ exports.notes = function (state, ev) {
   for(var id in clock) {
     var seq = clock[id]
     var _seq = peer.clock[id] = seq < -1 ? ~seq : seq
+    var lseq = state.clock[id] || 0
     //check if we are not following this feed.
     if(!state.follows[id]) {
       peer.notes = peer.notes || {}
       peer.notes[id] = -1
     }
     else {
-      if(!peer.replicating[id]) {
-        peer.replicating[id] = {tx: true, rx: true, sent: _seq}
+      var rep = peer.replicating[id]
+      if(!rep) {
+        rep = peer.replicating[id] = {
+          tx: false, //true,
+          rx: false, //lseq < _seq,
+          sent: _seq
+        }
         peer.notes = peer.notes || {}
-        var lseq = state.clock[id] || 0
         peer.notes[id] = lseq == 0 ? 0 : lseq < _seq ? lseq : ~lseq
       }
+      else if(!rep.rx && _seq > lseq) {
+        rep.rx = true
+        peer.notes = peer.notes || {}
+        peer.notes[id] = lseq
+        //if we shift this feed into receive mode (rx),
+        //remember the time, and if we havn't received anything
+        //after a timeout, request from another peer instead.
+        rep.ts = ev.ts
+      }
       //positive seq means "send this to me please"
-      peer.replicating[id].tx = seq >= 0
+      rep.tx = seq >= 0
       //in the case we are already ahead, get ready to send them messages.      
-      peer.replicating[id].sent = seq
+      rep.sent = _seq
       if(seq >= 0 && state.clock[id] > _seq) {
         peer.retrive.push(id)
       }
@@ -198,6 +212,4 @@ exports.notes = function (state, ev) {
   }
   return state
 }
-
-
 
