@@ -38,13 +38,17 @@ EBTStream.prototype.write = function (data) {
   this.peer.update(this.remote)
 }
 
-EBTStream.prototype.end = function (err) {
+EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
+  //check if we have already ended
+  if(!this.peer.state.peers[this.remote]) return
+
   var peerState = this.peer.state.peers[this.remote]
   this.peer.state =
     events.disconnect(this.peer.state, {id: this.remote})
   if(this._onClose) this._onClose(peerState)
   //remove from the peer...
   delete this.peer.streams[this.remote]
+  if(this.sink && !this.sink.ended) this.sink.end(err)
 }
 
 EBTStream.prototype.canSend = function () {
@@ -61,8 +65,9 @@ EBTStream.prototype.resume = function () {
   var state = this.peer.state.peers[this.remote]
   if(!this.sink || this.sink.paused) return
   while(this.canSend()) {
-    if(state.msgs.length)
+    if(state.msgs.length) {
       this.sink.write(state.msgs.shift())
+    }
     else {
       var notes = state.notes
       state.notes = null
@@ -72,5 +77,4 @@ EBTStream.prototype.resume = function () {
 }
 
 EBTStream.prototype.pipe = require('push-stream/pipe')
-
 
