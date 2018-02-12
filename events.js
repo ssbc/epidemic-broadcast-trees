@@ -139,6 +139,8 @@ exports.receive = function (state, ev) {
   //receive a message, validate and append.
   //if this message is forked, disable this feed
 
+  if(!state.peers[ev.id]) throw new Error('lost peer state:'+ev.id)
+
   //we _know_ that this peer is upto at least this message now.
   //(but maybe they already told us they where ahead further)
   state.peers[ev.id].clock[msg.author] = Math.max(state.peers[ev.id].clock[msg.author], msg.sequence)

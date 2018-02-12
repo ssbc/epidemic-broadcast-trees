@@ -28,6 +28,7 @@ EBTStream.prototype.clock = function (clock) {
 }
 
 EBTStream.prototype.write = function (data) {
+  if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
   if(isMsg(data))
     this.peer.state =
       events.receive(this.peer.state, {id: this.remote, value:data})
