@@ -46,9 +46,9 @@ exports.peerClock = function (state, ev) {
   //if we want to replicate a peer that has changed since their clock,
   //create a replication for that peer.
 
+  peer.notes = peer.notes || {}
   for(var id in state.follows) {
-    if(state.follows[id] && clock[id] == null || clock[id] != state.clock[id]) {
-      peer.notes = peer.notes || {}
+    if(state.follows[id] && clock[id] !== -1 && (clock[id] != (state.clock[id] || 0))) {
       peer.notes[id] = state.clock[id] || 0
       peer.replicating = peer.replicating || {}
       peer.replicating[id] = {
@@ -80,7 +80,7 @@ exports.follow = function (state, ev) {
           if(peer.replicating[ev.id])
             peer.replicating[ev.id].rx = false
         }
-        else if(ev.value === true) {
+        else if(ev.value === true && peer.clock[ev.id] != (state.clock[ev.id] || 0)) {
           peer.replicating[ev.id] = {
             rx: true, tx: false,
             sent: -1
@@ -169,12 +169,14 @@ exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
   var peer = state.peers[ev.id]
-
+  if(!peer) throw new Error('lost state of peer:'+id)
   if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
-
+  var count = 0
   for(var id in clock) {
+    count ++
     var seq = clock[id]
-    var _seq = peer.clock[id] = seq < -1 ? ~seq : seq
+    var _seq = seq < -1 ? ~seq : seq
+    peer.clock[id] = _seq
     var lseq = state.clock[id] || 0
     //check if we are not following this feed.
     if(!state.follows[id]) {
@@ -210,6 +212,8 @@ exports.notes = function (state, ev) {
       }
     }
   }
+  peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
+
 
