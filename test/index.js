@@ -33,13 +33,11 @@ test('initialize, connect to new peer', function (t) {
   var state = events.initialize()
 
   state = events.connect(state, {id: 'alice'})
-  console.log(state)
   state = events.peerClock(state, {id: 'alice', value: {}})
-  console.log(state)
 
   has(t, state, {
     peers: {
-      alice: { clock: {}, msgs: [], notes: null, replicating: {} },
+      alice: { clock: {}, msgs: [], notes: {}, replicating: {} },
     }
   })
 
@@ -48,14 +46,13 @@ test('initialize, connect to new peer', function (t) {
   state = events.follow(state, {id: 'alice', value: true})
 
   t.deepEqual(state.follows, {alice: true})
+  console.log(state.peers.alice)
 
   has(t, state.peers.alice, {
     clock: {},
     notes: { alice: 0 },
     replicating: {alice: {rx: true}}
   }, ['state', 'peers', 'alice'])
-
-  console.log(state)
 
   //lets say we send the note
 
@@ -222,7 +219,7 @@ test('reply to any clock they send, 2', function (t) {
   t.end()
 })
 
-test('append when not in tx mode', function (t) {
+test('append when not in TX mode', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
     follows: { alice: true, bob: true},
@@ -241,7 +238,57 @@ test('append when not in tx mode', function (t) {
 
   state = events.append(state, {author: 'alice', sequence: 4, content: {}})
   t.deepEqual(state.peers.bob.notes, {bob: 2, alice: ~4})
-  console.log(state.peers.bob.replicating)
+  var rep = state.peers.bob.replicating.alice
+  t.equal(rep.tx, false)
+  t.equal(rep.sent, 3)
+
+  state = events.notes(state, {id: 'bob', value: {alice: 3}})
+  t.deepEqual(state.peers.bob.retrive, ['alice'])
+
   t.end()
 })
+
+test('note when not in RX mode', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: { alice: true, bob: true},
+    peers: {
+      bob: {
+        clock: {alice: 3, bob: 2},
+        retrive: [],
+        msgs: [],
+        notes: null,
+        replicating: {
+          alice: {
+            tx:false, rx: false, sent: 3
+          }
+        }
+      }
+    }
+  }
+
+  state = events.notes(state, {id: 'bob', value: {alice: ~5}})
+  var rep = state.peers.bob.replicating.alice
+//  t.equal(rep.tx, true)
+  t.equal(rep.rx, true)
+  t.equal(rep.sent, 5)
+  t.deepEqual(state.peers.bob.notes, {alice: 3})
+
+  console.log(state.peers.bob.replicating)
+
+//  state = events.append(state, {author: 'alice', sequence: 4, content: {}})
+//  t.deepEqual(state.peers.bob.notes, {bob: 2, alice: ~4})
+//  var rep = state.peers.bob.replicating.alice
+//  t.equal(rep.tx, false)
+//  t.equal(rep.sent, 3)
+//
+  t.end()
+
+})
+
+
+
+
+
+
 
