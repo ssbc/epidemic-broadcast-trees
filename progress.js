@@ -13,13 +13,13 @@ module.exports = function (state) {
         prog.current ++
 
         var seq1 = Math.max(peerClock[feed] || 0, rep.sent), seq2 = state.clock[feed] || 0
-        console.log(seq1, seq2)
         prog.target += Math.max(seq1, seq2) - Math.min(seq1, seq2)
 
       }
     }
   return prog
 }
+
 
 
 
