@@ -17,11 +17,16 @@ module.exports = function (opts) {
       self.update()
     },
     createStream: function (remote_id) {
-      var stream = this.streams[remote_id] = new Stream(this, remote_id, function (state) {
-        opts.setClock(remote_id, state.clock)
+      if(this.streams[remote_id])
+        this.streams[remote_id].end(new Error('reconnected to peer'))
+      var stream = this.streams[remote_id] = new Stream(this, remote_id, function (peerState) {
+        opts.setClock(remote_id, peerState.clock)
       })
       opts.getClock(remote_id, function (err, clock) {
-        stream.clock(err ? {} : clock)
+        //check if peer exists in state, because we may
+        //have disconect in the meantime
+        if(self.state.peers[remote_id])
+          stream.clock(err ? {} : clock)
       })
       return stream
     },
@@ -72,5 +77,4 @@ module.exports = function (opts) {
   }
   return self
 }
-
 
