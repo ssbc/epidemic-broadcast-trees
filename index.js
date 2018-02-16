@@ -9,6 +9,7 @@ module.exports = function (opts) {
     id: opts.id,
     streams: {},
     state: state,
+    logging: opts.logging,
     progress: function () {
       return progress(state)
     },
@@ -19,6 +20,7 @@ module.exports = function (opts) {
     createStream: function (remote_id) {
       if(this.streams[remote_id])
         this.streams[remote_id].end(new Error('reconnected to peer'))
+      if(this.logging) console.error('EBT:conn', remote_id)
       var stream = this.streams[remote_id] = new Stream(this, remote_id, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
@@ -77,4 +79,6 @@ module.exports = function (opts) {
   }
   return self
 }
+
+
 

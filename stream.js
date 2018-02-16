@@ -13,7 +13,7 @@ function EBTStream (peer, remote, onClose) {
   this.peer = peer
   this.peer.state =
     events.connect(this.peer.state, {id: remote})
-
+  this.ended = false
   this._onClose = onClose
 
   this.sink = this.source = null
@@ -28,6 +28,7 @@ EBTStream.prototype.clock = function (clock) {
 }
 
 EBTStream.prototype.write = function (data) {
+  if(this.peer.logging) console.error("EBT:recv", data)
   if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
   if(isMsg(data))
     this.peer.state =
@@ -40,8 +41,11 @@ EBTStream.prototype.write = function (data) {
 }
 
 EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
+  this.ended = true
   //check if we have already ended
   if(!this.peer.state.peers[this.remote]) return
+
+  if(this.peer.logging) console.error('EBT:dcon', this.remote)
 
   var peerState = this.peer.state.peers[this.remote]
   this.peer.state =
@@ -67,15 +71,19 @@ EBTStream.prototype.resume = function () {
   if(!this.sink || this.sink.paused) return
   while(this.canSend()) {
     if(state.msgs.length) {
+      if(this.peer.logging) console.error("EBT:send", state.msgs[0])
       this.sink.write(state.msgs.shift())
     }
     else {
       var notes = state.notes
       state.notes = null
+      if(this.peer.logging) console.error("EBT:send", notes)
       this.sink.write(notes)
     }
   }
 }
 
 EBTStream.prototype.pipe = require('push-stream/pipe')
+
+
 
