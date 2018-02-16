@@ -1,7 +1,7 @@
 {
   "name": "epidemic-broadcast-trees",
   "description": "",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "homepage": "https://github.com/dominictarr/epidemic-broadcast-trees",
   "repository": {
     "type": "git",
@@ -18,9 +18,3 @@
   "author": "'Dominic Tarr' <dominic.tarr@gmail.com> (http://dominictarr.com)",
   "license": "MIT"
 }
-
-
-
-
-
-
