@@ -177,6 +177,7 @@ exports.notes = function (state, ev) {
   for(var id in clock) {
     count ++
     var seq = clock[id]
+    seq = Number.isInteger(seq) ? seq : -1
     var _seq = seq < -1 ? ~seq : seq
     peer.clock[id] = _seq
     var lseq = state.clock[id] || 0
@@ -217,5 +218,6 @@ exports.notes = function (state, ev) {
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
+
 
 
