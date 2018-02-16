@@ -286,6 +286,25 @@ test('note when not in RX mode', function (t) {
 
 })
 
+test('note when value is not integer', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: { alice: true, bob: true},
+    peers: {}
+  }
+
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{}})
+
+  t.deepEqual(state.peers.bob.clock, {})
+  state = events.notes(state, {id: 'bob', value: {alice: true}})
+
+  t.deepEqual(state.peers.bob.clock, {alice: -1})
+  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2})
+
+  t.end()
+})
+
 
 
 
