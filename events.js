@@ -171,7 +171,7 @@ exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
   var peer = state.peers[ev.id]
-  if(!peer) throw new Error('lost state of peer:'+id)
+  if(!peer) throw new Error('lost state of peer:'+ev.id)
   if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
   var count = 0
   for(var id in clock) {
