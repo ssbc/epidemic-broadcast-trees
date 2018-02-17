@@ -111,6 +111,12 @@ exports.retrive = function (state, msg) {
   return state
 }
 
+function isAhead(seq1, seq2) {
+  if(seq2 === -1) return false
+  if(seq2 == null) return true
+  if(seq1 > seq2) return true
+}
+
 exports.append = function (state, msg) {
   //check if any peer requires this msg
   if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
@@ -125,7 +131,18 @@ exports.append = function (state, msg) {
       rep.sent++
     }
     //if we are ahead of this peer, and not in tx mode, let them know that.
-    else if(rep && !rep.tx && msg.sequence > peer.clock[msg.author]) {
+    else if(rep && !rep.tx && peer.clock[msg.author] != -1 && msg.sequence > peer.clock[msg.author]) {
+      peer.notes = peer.notes || {}
+      peer.notes[msg.author] = ~msg.sequence
+    }
+    else if(
+      !rep &&
+      state.follows[msg.author] &&
+      (peer.clock[msg.author] == null || (
+        peer.clock[msg.author] >= 0 &&
+        peer.clock[msg.author] < msg.sequence
+      ))
+    ) {
       peer.notes = peer.notes || {}
       peer.notes[msg.author] = ~msg.sequence
     }
