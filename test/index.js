@@ -326,4 +326,25 @@ test('test sends empty clock if nothing needed', function (t) {
 })
 
 
+test('connects in sync then another message', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: { alice: true, bob: true},
+    peers: {}
+  }
 
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{alice: 3, bob: 2}})
+
+  t.deepEqual(state.peers.bob.clock, {alice: 3, bob: 2})
+  t.deepEqual(state.peers.bob.notes, {})
+
+  //receive empty clock
+  state = events.notes(state, {id: 'bob', value: {}})
+  t.deepEqual(state.peers.bob.replicating, {})
+
+  state = events.append(state, {author: 'alice', sequence: 4, content: {}})
+  t.deepEqual(state.peers.bob.notes, {alice: ~4})
+  
+  t.end()
+})
