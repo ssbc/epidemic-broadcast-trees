@@ -7,7 +7,10 @@
     "type": "git",
     "url": "git://github.com/dominictarr/epidemic-broadcast-trees.git"
   },
-  "dependencies": {},
+  "dependencies": {
+    "inherits": "^2.0.3",
+    "push-stream": "^10.0.0"
+  },
   "devDependencies": {
     "rng": "^0.2.2",
     "tape": "^4.6.3"
