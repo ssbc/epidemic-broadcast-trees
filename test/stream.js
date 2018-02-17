@@ -103,6 +103,9 @@ test('a<->b,b', function (t) {
 
   bob.append({author: 'bob', sequence: 2, content: 'hello2'}, function () {})
 
+  t.throws(function () {
+    as.write({alice: -1, bob: -2})
+  })
   t.equal(as.ended, true)
   t.equal(bs.ended, true)
 
