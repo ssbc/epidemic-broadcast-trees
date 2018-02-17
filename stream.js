@@ -53,6 +53,7 @@ EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
   if(this._onClose) this._onClose(peerState)
   //remove from the peer...
   delete this.peer.streams[this.remote]
+  if(this.source && !this.source.ended) this.source.abort(err)
   if(this.sink && !this.sink.ended) this.sink.end(err)
 }
 
