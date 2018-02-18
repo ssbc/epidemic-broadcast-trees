@@ -126,25 +126,22 @@ exports.append = function (state, msg) {
   for(var id in state.peers) {
     var peer = state.peers[id]
     var rep = peer.replicating[msg.author]
+
     if(rep && rep.tx && rep.sent == msg.sequence - 1 && msg.sequence > peer.clock[msg.author]) {
       peer.msgs.push(msg)
       rep.sent++
     }
     //if we are ahead of this peer, and not in tx mode, let them know that.
-    else if(rep && !rep.tx && peer.clock[msg.author] != -1 && msg.sequence > peer.clock[msg.author]) {
-      peer.notes = peer.notes || {}
-      peer.notes[msg.author] = ~msg.sequence
-    }
     else if(
-      !rep &&
-      state.follows[msg.author] &&
-      (peer.clock[msg.author] == null || (
-        peer.clock[msg.author] >= 0 &&
-        peer.clock[msg.author] < msg.sequence
-      ))
+      isAhead(msg.sequence, peer.clock[msg.author]) &&
+      ( rep
+        ? !rep.tx && rep.sent != null
+        : state.follows[msg.author]
+      )
     ) {
       peer.notes = peer.notes || {}
       peer.notes[msg.author] = ~msg.sequence
+
     }
   }
 
@@ -235,6 +232,12 @@ exports.notes = function (state, ev) {
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
+
+
+
+
+
+
 
 
 
