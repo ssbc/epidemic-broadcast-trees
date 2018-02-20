@@ -1,6 +1,9 @@
 # epidemic-broadcast-trees
 
-This is an implementation of the plumtree Epidemic Broadcast Trees paper.
+This module is based on plumtree Epidemic Broadcast Trees paper,
+but adapted to also replicate logs, and optimized to achive a minimal
+overhead (the cost of the protocol is linear with the number of messages to be sent)
+
 It's a algorithm that combines the robustness of a flooding epidemic gossip broadcast,
 with the efficiency of a tree model. It's intended for implementing realtime protocols
 (such as chat, scuttlebutt, also radio/video) over networks with random topology -
@@ -10,6 +13,69 @@ Although the primary motivation for this module is to use it in secure scuttlebu
 it's intended to be decoupled sufficiently to use for other applications.
 
 ## example
+
+implement a simple in memory log replicator.
+
+``` js
+var clocks = {}
+var logs = {}
+
+function append (msg, cb) {
+  var log = logs[msg.author] = logs[msg.author] || []
+  //check that this is the next expected message.
+  if(msg.sequence != log.length)
+    cb(new Error('out of order, found:'+msg.sequence+', expected:'+log.length))
+  else {
+    log.push(msg)
+    ebt.onAppend(msg)
+    cb()
+  }
+}
+
+var ebt = EBT({
+  //NOTE: in this example, we are using readable strings for clarity
+  //but ideally you'd use cryptographic ids, like public keys.
+  id: 'alice',
+  getClock: function (id, cb) {
+    //load the peer clock for id.
+    cb(null, clocks[id] || {})
+  },
+  setClock: function (id, clock) {
+    //set clock doesn't have take a cb, but it's okay to be async.
+    clocks[id] = clock
+  },
+  getAt: function (pair, cb) {
+    //load a message particular message, by id:sequence
+    if(!logs[pair.id] || !logs[pair.id][pair.sequence])
+      cb(new Error('not found'))
+    else
+      cb(null, logs[pair.id][pair.sequence])
+  },
+  append: append
+})
+
+ebt.append({
+  author: 'alice', sequence: 1, content: {}
+}, function () {})
+
+//must explicitly say we are replicating which peers.
+ebt.request('alice', true)
+ebt.request('bob', true)
+
+//create a stream and pipe it to another instance
+var stream = ebt.createStream('bob')
+stream.pipe(remote_stream).pipe(stream)
+```
+
+> note about push-stream: push-stream is only new, so you'll probably
+  need to convert this to a pull-stream to connect stream to a network
+  io stream and serialization
+
+``` js
+var pushToPull = require('push-stream-to-pull-stream')
+var stream = pushToPull(ebt.createStream(remote_id))
+pull(stream, remote_pull_stream, stream)
+```
 
 
 #### `stream.progress()`
@@ -42,16 +108,11 @@ it easy to represent what messages have not been seen using just a incrementing 
 
 ## todo
 
-* call a user function to decide whether we want to replicate a given feed (say, for blocking bad pers)
 * handle models where it's okay to have gaps in a log (as with classic [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
 
 ## License
 
 MIT
-
-
-
-
 
 
 
