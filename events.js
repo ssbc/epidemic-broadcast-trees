@@ -65,29 +65,28 @@ exports.follow = function (state, ev) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
       var peer = state.peers[id]
+      if(!peer.clock) continue;
       //cases:
       //  don't have feed
       //  do have feed
       //  peer has feed
       //  peer rejects feed
-      if(peer.clock) {
-        if(peer.clock[ev.id] === -1) {
-          //peer explicitly does not replicate this feed, don't ask for it.
+      if(peer.clock[ev.id] === -1) {
+        //peer explicitly does not replicate this feed, don't ask for it.
+      }
+      else if(ev.value === false) { //unfollow
+        peer.notes = peer.notes || {}
+        peer.notes[ev.id] = -1
+        if(peer.replicating[ev.id])
+          peer.replicating[ev.id].rx = false
+      }
+      else if(ev.value === true && peer.clock[ev.id] != (state.clock[ev.id] || 0)) {
+        peer.replicating[ev.id] = {
+          rx: true, tx: false,
+          sent: -1
         }
-        else if(ev.value === false) { //unfollow
-          peer.notes = peer.notes || {}
-          peer.notes[ev.id] = -1
-          if(peer.replicating[ev.id])
-            peer.replicating[ev.id].rx = false
-        }
-        else if(ev.value === true && peer.clock[ev.id] != (state.clock[ev.id] || 0)) {
-          peer.replicating[ev.id] = {
-            rx: true, tx: false,
-            sent: -1
-          }
-          peer.notes = peer.notes || {}
-          peer.notes[ev.id] = state.clock[ev.id] || 0
-        }
+        peer.notes = peer.notes || {}
+        peer.notes[ev.id] = state.clock[ev.id] || 0
       }
     }
   }
@@ -125,6 +124,7 @@ exports.append = function (state, msg) {
 
   for(var id in state.peers) {
     var peer = state.peers[id]
+    if(!peer.clock) continue;
     var rep = peer.replicating[msg.author]
 
     if(rep && rep.tx && rep.sent == msg.sequence - 1 && msg.sequence > peer.clock[msg.author]) {
@@ -232,12 +232,6 @@ exports.notes = function (state, ev) {
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
-
-
-
-
-
-
 
 
 
