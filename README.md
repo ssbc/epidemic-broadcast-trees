@@ -78,7 +78,33 @@ pull(stream, remote_pull_stream, stream)
 ```
 
 
-#### `stream.progress()`
+## API
+
+### EBT({id,getClock,setClock,getAt,append}) => ebt
+
+Create a new EBT instance. `id` is a unique identifier of the current peer.
+In [secure-scuttlebutt](https://scuttlebutt.nz) this is a ed25519 public key.
+
+`getClock(id, cb)` and `setClock(id, clock)` save a peer's clock object.
+This is used to save bandwidth when reconnecting to a peer again.
+
+`getAt({id, sequence}, cb)` retrives a message in a feed and an sequence.
+messages must have `{author, sequence, content}` fields.
+
+`append(msg, cb)` append a particular message to the log.
+
+### ebt.onAppend (msg)
+
+When a message is appended to the database, tell ebt about it.
+this must be called whenever a message is successfully appended to the database.
+
+### ebt.request(id, follow)
+
+Tell ebt to replicate a particular feed. `id` is a feed id, and `follow` is a `boolean`.
+If `follow` is `false`, but previously was called with true, ebt will stop replicating
+that feed.
+
+#### `ebt.progress()`
 
 returns an object which represents the current replication progress.
 
@@ -106,6 +132,12 @@ in a paper - and there is an implementation of that paper in erlang here: https:
 There are some small differences, mainly because I want to send messages in order, which makes
 it easy to represent what messages have not been seen using just a incrementing sequence number per feed.
 
+But plumbtree is solely a broadcast protocol, not an eventually consistent replication protocol.
+Since we are replicating _logs_ it's also necessary to send a handshake to request the feeds
+from the right points. If you are replicating thousands of feeds the size of the handshake is
+significant, so we introduce an algorithm for "request skipping" that avoids sending unnecessary
+requests, and saves a lot of bandwidth compared to just requesting all feeds each connection.
+
 ## todo
 
 * handle models where it's okay to have gaps in a log (as with classic [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
@@ -113,7 +145,5 @@ it easy to represent what messages have not been seen using just a incrementing 
 ## License
 
 MIT
-
-
 
 
