@@ -2,8 +2,12 @@ var Stream = require('./stream')
 var events = require('./events')
 var progress = require('./progress')
 
+function timestamp () {
+  return Date.now()
+}
+
 module.exports = function (opts) {
-  var state = events.initialize(opts.id)
+  var state = events.initialize(opts.id, timestamp())
   state.clock = {}
   var self = {
     id: opts.id,
@@ -14,7 +18,7 @@ module.exports = function (opts) {
       return progress(state)
     },
     request: function (id, follows) {
-      self.state = events.follow(self.state, {id: id, value: follows !== false})
+      self.state = events.follow(self.state, {id: id, value: follows !== false, ts: timestamp()})
       self.update()
     },
     createStream: function (remote_id) {
@@ -79,6 +83,4 @@ module.exports = function (opts) {
   }
   return self
 }
-
-
 

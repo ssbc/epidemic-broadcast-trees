@@ -7,21 +7,24 @@ function isMsg (m) {
 
 module.exports = EBTStream
 
+function timestamp () {
+  return Date.now()
+}
+
 function EBTStream (peer, remote, onClose) {
   this.paused = true //start out paused
   this.remote = remote
   this.peer = peer
   this.peer.state =
-    events.connect(this.peer.state, {id: remote})
+    events.connect(this.peer.state, {id: remote, ts: timestamp()})
   this.ended = false
   this._onClose = onClose
-
   this.sink = this.source = null
 }
 
 EBTStream.prototype.clock = function (clock) {
   this.peer.state =
-    events.peerClock(this.peer.state, {id: this.remote, value: clock})
+    events.peerClock(this.peer.state, {id: this.remote, value: clock, ts: timestamp()})
   this.paused = false
   this.peer.update()
   if(this.source) this.source.resume()
@@ -32,10 +35,10 @@ EBTStream.prototype.write = function (data) {
   if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
   if(isMsg(data))
     this.peer.state =
-      events.receive(this.peer.state, {id: this.remote, value:data})
+      events.receive(this.peer.state, {id: this.remote, value:data, ts: timestamp()})
   else
     this.peer.state =
-      events.notes(this.peer.state, {id: this.remote, value: data})
+      events.notes(this.peer.state, {id: this.remote, value: data, ts: timestamp()})
 
   this.peer.update(this.remote)
 }
@@ -49,7 +52,7 @@ EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
 
   var peerState = this.peer.state.peers[this.remote]
   this.peer.state =
-    events.disconnect(this.peer.state, {id: this.remote})
+    events.disconnect(this.peer.state, {id: this.remote, ts: timestamp()})
   if(this._onClose) this._onClose(peerState)
   //remove from the peer...
   delete this.peer.streams[this.remote]
@@ -85,6 +88,4 @@ EBTStream.prototype.resume = function () {
 }
 
 EBTStream.prototype.pipe = require('push-stream/pipe')
-
-
 
