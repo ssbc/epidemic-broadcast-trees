@@ -119,6 +119,18 @@ test('initialize, connect to new peer', function (t) {
 
 })
 
+test('initialize, but append before peerClock loads', function (t) {
+
+  var state = events.initialize()
+  state = events.clock(state, {alice: 1, bob: 2})
+
+  state = events.connect(state, {id: 'alice'})
+  state = events.append(state, {author: 'bob', sequence: 3, content: {}})
+
+  state = events.peerClock(state, {id: 'alice', value: {}})
+  t.end()
+})
+
 test('connect to two peers, append message one send, one note', function (t) {
 
   var state = {
@@ -348,3 +360,4 @@ test('connects in sync then another message', function (t) {
   
   t.end()
 })
+
