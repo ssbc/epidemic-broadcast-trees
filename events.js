@@ -243,7 +243,7 @@ exports.notes = function (state, ev) {
       else if(!rep.rx && _seq > lseq) {
         rep.rx = !replicating
         peer.notes = peer.notes || {}
-        peer.notes[id] = replicating || !lseq ? lseq : ~lseq
+        peer.notes[id] = (!replicating || !lseq) ? lseq : ~lseq
         //if we shift this feed into receive mode (rx),
         //remember the time, and if we havn't received anything
         //after a timeout, request from another peer instead.
@@ -262,6 +262,7 @@ exports.notes = function (state, ev) {
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
+
 
 
 
