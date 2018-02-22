@@ -16,9 +16,11 @@ log = _log
 var rng = new RNG.MT(seed || 0)
 
 var output = []
+var ts = 0
 
 function createPeer(id) {
   var store = {}, state = events.initialize(id), self
+  var ts = 0
   var pClock = {}
   return self = {
     id: id,
@@ -34,20 +36,20 @@ function createPeer(id) {
       state = events.clock(state, clock)
     },
     connect: function (other) {
-      state = events.connect(state, {id: other.id})
-      state = events.peerClock(state, {id: other.id, value: pClock[other.id] || {}})
-      other.state = events.connect(other.state, {id: this.id})
-      other.state = events.peerClock(other.state, {id: id, value: other.clocks[id] || {}})
+      state = events.connect(state, {id: other.id, ts: ++ts})
+      state = events.peerClock(state, {id: other.id, value: pClock[other.id] || {}, ts: ++ts})
+      other.state = events.connect(other.state, {id: this.id, ts: ++ts})
+      other.state = events.peerClock(other.state, {id: id, value: other.clocks[id] || {}, ts: ++ts})
     },
     disconnect: function (other) {
       pClock[other.id] = state.peers[other.id].clock
       other.clocks[id] = other.state.peers[id].clock
 
-      state = events.disconnect(state, {id: other.id})
-      other.state = events.disconnect(other.state, {id: this.id})
+      state = events.disconnect(state, {id: other.id, ts: ++ts})
+      other.state = events.disconnect(other.state, {id: this.id, ts: ++ts})
     },
     follow: function (peer, value) {
-      state = events.follow(state, {id: peer, value: value !== false})
+      state = events.follow(state, {id: peer, value: value !== false, ts: ++ts})
     },
     append: function (msg) {
       var ary = store[msg.author] = store[msg.author] || []
@@ -97,7 +99,7 @@ function tick (network) {
       return randomFind([function () {
         return randomFind(peer.state.peers, function (key, p2p) {
           if(!p2p.clock) {
-            peer.state = events.peerClock(peer.state, {id: key, value: {}})
+            peer.state = events.peerClock(peer.state, {id: key, value: {}, ts: ++ts})
             return true
           }
         })
@@ -139,14 +141,14 @@ function tick (network) {
           var notes = remote.notes
           remote.notes = null
           network[remote_id].state =
-            events.notes(network[remote_id].state, {id: id, value: notes})
+            events.notes(network[remote_id].state, {id: id, value: notes, ts: ++ts})
           output.push({from: id, to: remote_id, value: notes, msg: false})
           return true
         }
         else if(remote.msgs.length) {
           output.push({from: id, to: remote_id, value: remote.msgs[0], msg: true})
           network[remote_id].state =
-            events.receive(network[remote_id].state, {id: id, value: remote.msgs.shift() })
+            events.receive(network[remote_id].state, {id: id, value: remote.msgs.shift(), ts: ++ts})
           return true
         }
       })
@@ -169,4 +171,5 @@ function tick (network) {
   }
   return tick
 }
+
 
