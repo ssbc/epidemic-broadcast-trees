@@ -1,13 +1,41 @@
+'use strict'
 
+//check if a feed is already being replicated on another peer from ignore_id
 function isAlreadyReplicating(state, feed_id, ignore_id) {
   for(var id in state.peers) {
     if(id !== ignore_id) {
       var peer = state.peers[id]
-      if(peer.notes && peer.notes[id] >= 0) return true
-      if(peer.replicating[feed_id] && peer.replicating[feed_id].rx) return true
+      if(peer.notes && peer.notes[id] >= 0) return id
+      if(peer.replicating[feed_id] && peer.replicating[feed_id].rx) return id
     }
   }
   return false
+}
+
+//check if a feed is available from a peer apart from ignore_id
+
+function isAvailable(state, feed_id, ignore_id) {
+  for(var peer_id in state.peers) {
+    if(peer_id != ignore_id) {
+      var peer = state.peers[peer_id]
+      if(peer.clock[feed_id] || 0 > state.clock[feed_id] > 0)
+        return true
+    }
+  }
+}
+
+//jump to a particular key in a list, then iterate from there
+//back around to the key. this is used for switching away from
+//peers that stall so that you'll rotate through all the peers
+//not just swich between two different peers.
+
+function eachFrom(keys, key, iter) {
+  var i = keys.indexOf(key)
+  if(!~i) return
+  //start at 1 because we want to visit all keys but key.
+  for(var j = 1; j < keys.length; j++)
+    if(iter(keys[(j+i)%keys.length], j))
+      return
 }
 
 exports.initialize = function (id) {
@@ -75,6 +103,7 @@ exports.peerClock = function (state, ev) {
 
   return state
 }
+
 //XXX handle replicating with only one peer.
 exports.follow = function (state, ev) {
   //set to true once we have asked for this feed from someone.
@@ -181,25 +210,28 @@ exports.receive = function (state, ev) {
 
   //we _know_ that this peer is upto at least this message now.
   //(but maybe they already told us they where ahead further)
-  state.peers[ev.id].clock[msg.author] = Math.max(state.peers[ev.id].clock[msg.author], msg.sequence)
-  state.peers[ev.id].replicating[msg.author].sent =
+  var peer = state.peers[ev.id]
+  peer.clock[msg.author] = Math.max(peer.clock[msg.author], msg.sequence)
+  peer.replicating[msg.author].sent =
     Math.max(
-      state.peers[ev.id].replicating[msg.author].sent,
+      peer.replicating[msg.author].sent,
       msg.sequence
     )
+
   //if this message has already been seen, ignore.
   if(state.clock[msg.author] > msg.sequence) {
-    var peer = state.peers[ev.id]
     if(peer.replicating[msg.author] && peer.replicating[msg.author].rx) {
       peer.notes = peer.notes || {}
-      peer.notes[msg.author] = -state.clock[msg.author]
+      peer.notes[msg.author] = ~state.clock[msg.author]
       peer.replicating[msg.author].rx = false
+      //XXX activate some other peer?
     }
     return state
   }
 
+  //remember the time of the last message received
+  state.peers[ev.id].ts = ev.ts
   state.receive.push(msg)
-
   //Q: possibly update the receiving mode?
 
   return state
@@ -241,14 +273,27 @@ exports.notes = function (state, ev) {
         rep.rx = peer.notes[id] >= 0
       }
       else if(!rep.rx && _seq > lseq) {
-        rep.rx = !replicating
-        peer.notes = peer.notes || {}
-        peer.notes[id] = (!replicating || !lseq) ? lseq : ~lseq
-        //if we shift this feed into receive mode (rx),
-        //remember the time, and if we havn't received anything
-        //after a timeout, request from another peer instead.
-        rep.ts = ev.ts
-        rep.rx = peer.notes[id] >= 0
+        if(!replicating) {
+          rep.rx = true
+          peer.notes = peer.notes || {}
+          peer.notes[id] = lseq
+          peer.ts = ev.ts //remember ts, so we can switch this feed if necessary
+        } else {
+          //if we are already replicating this via another peer
+          //switch to this peer if it is further ahead.
+          //(todo?: switch if the other peer's timestamp is old?)
+          var _peer = state.peers[replicating]
+          if(_seq > _peer.clock[id]) {
+            rep.rx = true
+            peer.notes = peer.notes || {}
+            peer.notes[id] = lseq
+            peer.ts = ev.ts
+            //deactivate the previous peer
+            _peer.notes = _peer.notes || {}
+            _peer.notes[id] = ~lseq
+            _peer.replicating[id].rx = false
+          }
+        }
       }
       //positive seq means "send this to me please"
       rep.tx = seq >= 0
@@ -263,9 +308,47 @@ exports.notes = function (state, ev) {
   return state
 }
 
-
-
-
+exports.timeout = function (state, ev) {
+  var want = {}
+  for(var peer_id in state.peers) {
+    var peer = state.peers[peer_id]
+    //check if the peer hasn't received a connection recently.
+    if(peer.ts + state.timeout < ev.ts) {
+      for(var id in peer.replicating) {
+        //but if the peer has claimed a higher message,
+        //that we havn't received for some reason...
+        var rep = peer.replicating[id]
+        //note: isAvailable checks that there is some peer that
+        //claims a newer clock for a feed
+        if(rep.rx && isAvailable(state, id, peer_id)) {
+          want[id] = peer_id
+          peer.notes = peer.notes || {}
+          peer.notes[id] = ~state.clock[id]
+          rep.rx = false
+        }
+      }
+    }
+  }
+  var peer_ids = Object.keys(state.peers)
+  for(var feed_id in want) {
+    var ignore_id = want[feed_id]
+    eachFrom(peer_ids, ignore_id, function (peer_id) {
+      var peer = state.peers[peer_id]
+      if(peer.clock[feed_id] || 0 > state.clock[feed_id] || 0) {
+        peer.notes = peer.notes || {}
+        peer.notes[feed_id] = state.clock[feed_id] || 0
+        peer.replicating = peer.replicating || {}
+        peer.ts = ev.ts
+        var rep = peer.replicating[feed_id] = peer.replicating[feed_id] || {
+          tx: false, rx: true, sent: -1
+        }
+        //returning true triggers the end of eachFrom
+        return rep.rx = true
+      }
+    })
+  }
+  return state
+}
 
 
 
