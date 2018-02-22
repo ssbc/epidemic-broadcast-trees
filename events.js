@@ -1,4 +1,15 @@
 
+function isAlreadyReplicating(state, feed_id, ignore_id) {
+  for(var id in state.peers) {
+    if(id !== ignore_id) {
+      var peer = state.peers[id]
+      if(peer.notes && peer.notes[id] >= 0) return true
+      if(peer.replicating[feed_id] && peer.replicating[feed_id].rx) return true
+    }
+  }
+  return false
+}
+
 exports.initialize = function (id) {
   return {
     id: id,
@@ -49,18 +60,25 @@ exports.peerClock = function (state, ev) {
   peer.notes = peer.notes || {}
   for(var id in state.follows) {
     if(state.follows[id] && clock[id] !== -1 && (clock[id] != (state.clock[id] || 0))) {
-      peer.notes[id] = state.clock[id] || 0
+
+      //if we are already replicating, and this feed is at zero, ask for it anyway,
+      //XXX if a feed is at zero, but we are replicating on another peer
+      //just don't ask for it yet?
+      var replicating = isAlreadyReplicating(state, id, ev.id) && state.clock[id]
+      peer.notes[id] = !replicating ? state.clock[id] || 0 : ~(state.clock[id] || -1)
       peer.replicating = peer.replicating || {}
-      peer.replicating[id] = {
-        tx: false, rx: true, sent: null
+      var rep = peer.replicating[id] = {
+        tx: false, rx: !replicating, sent: null
       }
     }
   }
 
   return state
 }
-
+//XXX handle replicating with only one peer.
 exports.follow = function (state, ev) {
+  //set to true once we have asked for this feed from someone.
+  var replicating = false
   if(state.follows[ev.id] !== ev.value) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
@@ -86,7 +104,9 @@ exports.follow = function (state, ev) {
           sent: -1
         }
         peer.notes = peer.notes || {}
-        peer.notes[ev.id] = state.clock[ev.id] || 0
+        var seq = state.clock[ev.id]
+        peer.notes[ev.id] = replicating ? seq || 0 : ~(seq || -1)
+        replicating = true
       }
     }
   }
@@ -148,6 +168,10 @@ exports.append = function (state, msg) {
   return state
 }
 
+//XXX if we only receive from a single peer,
+//then we shouldn't really get known messages?
+//except during the race when we have disabled a peer
+//but they havn't noticed yet.
 exports.receive = function (state, ev) {
   var msg = ev.value
   //receive a message, validate and append.
@@ -181,6 +205,9 @@ exports.receive = function (state, ev) {
   return state
 }
 
+
+//XXX check if we are already receiving a feed
+//and if so put this into lazy mode.
 exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
@@ -202,27 +229,30 @@ exports.notes = function (state, ev) {
     }
     else {
       var rep = peer.replicating[id]
+      var replicating = isAlreadyReplicating(state, id, ev.id)
       if(!rep) {
         rep = peer.replicating[id] = {
-          tx: false, //true,
-          rx: false, //lseq < _seq,
+          tx: true, //true,
+          rx: true, //!replicating, //lseq < _seq,
           sent: _seq
         }
         peer.notes = peer.notes || {}
-        peer.notes[id] = lseq == 0 ? 0 : lseq < _seq ? lseq : ~lseq
+        peer.notes[id] = lseq == 0 ? 0 : lseq < _seq && !replicating ? lseq : ~lseq
+        rep.rx = peer.notes[id] >= 0
       }
       else if(!rep.rx && _seq > lseq) {
-        rep.rx = true
+        rep.rx = !replicating
         peer.notes = peer.notes || {}
-        peer.notes[id] = lseq
+        peer.notes[id] = replicating || !lseq ? lseq : ~lseq
         //if we shift this feed into receive mode (rx),
         //remember the time, and if we havn't received anything
         //after a timeout, request from another peer instead.
         rep.ts = ev.ts
+        rep.rx = peer.notes[id] >= 0
       }
       //positive seq means "send this to me please"
       rep.tx = seq >= 0
-      //in the case we are already ahead, get ready to send them messages.      
+      //in the case we are already ahead, get ready to send them messages.
       rep.sent = _seq
       if(seq >= 0 && state.clock[id] > _seq) {
         peer.retrive.push(id)
@@ -232,6 +262,9 @@ exports.notes = function (state, ev) {
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
+
+
+
 
 
 
