@@ -169,6 +169,17 @@ function tick (network) {
       }).join('\n')
     )
   }
+
+  tick.run = function (network) {
+    var loop = 1
+    while(loop) {
+      loop = 0
+      while(tick(network)) loop ++
+      if(loop)
+        for(var k in network)
+          network[k].state = events.timeout(network[k].state, {ts: ts++})
+    }
+  }
   return tick
 }
 
