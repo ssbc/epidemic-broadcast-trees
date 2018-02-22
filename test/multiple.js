@@ -34,7 +34,7 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
   for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
     for(var feed_id in peer.notes) {
-      t.equal(peer.notes[feed_id] >= 0, peer.replicating[feed_id].rx)
+      t.equal(peer.notes[feed_id] >= 0, peer.replicating[feed_id].rx, 'implied rx state should be recorded, seq:'+peer.notes[feed_id]+', rx='+peer.replicating[feed_id].rx)
       if(peer.notes[feed_id] >= 0) {
         notes[feed_id] = (notes[feed_id] || 0) + 1
       }
@@ -43,11 +43,8 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
 
   console.log(JSON.stringify(state.peers, null, 2))
 
-//  t.deepEqual(notes, {alice: 1, bob: 1, charles: 1})
+  t.deepEqual(notes, {alice: 1, bob: 1, charles: 1})
 
   t.end()
 })
-
-
-
 
