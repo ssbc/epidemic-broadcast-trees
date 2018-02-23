@@ -80,7 +80,21 @@ pull(stream, remote_pull_stream, stream)
 
 ## API
 
-### EBT({id,getClock,setClock,getAt,append}) => ebt
+### EBT(opts) => ebt
+
+where opts provides the necessary things to connect ebt
+to your system.
+
+```
+opts = {
+  id: string,
+  timeout: 3000, //default,
+  getClock: function (id, cb),
+  setClock: function (id, clock),
+  getAt: function ({id:string, sequence:number}, cb),
+  append: function (msg, cb)
+}
+```
 
 Create a new EBT instance. `id` is a unique identifier of the current peer.
 In [secure-scuttlebutt](https://scuttlebutt.nz) this is a ed25519 public key.
@@ -92,6 +106,9 @@ This is used to save bandwidth when reconnecting to a peer again.
 messages must have `{author, sequence, content}` fields.
 
 `append(msg, cb)` append a particular message to the log.
+
+`timeout` is used to decide when to switch a feed to another peer.
+This is essential to detecting when a peer may have stalled.
 
 ### ebt.onAppend (msg)
 
@@ -145,5 +162,6 @@ requests, and saves a lot of bandwidth compared to just requesting all feeds eac
 ## License
 
 MIT
+
 
 
