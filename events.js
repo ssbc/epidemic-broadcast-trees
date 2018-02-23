@@ -146,14 +146,15 @@ exports.follow = function (state, ev) {
 exports.retrive = function (state, msg) {
   //check if any peer requires this msg
   for(var id in state.peers) {
-    var rep = state.peers[id].replicating[msg.author]
+    var peer = state.peers[id]
+    var rep = peer.replicating[msg.author]
     if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
-      state.peers[id].msgs.push(msg)
+      peer.msgs.push(msg)
       if(rep.sent < state.clock[msg.author]) {
         //use continue, not return because we still need to loop through other peers.
-        if(~state.peers[id].retrive.indexOf(msg.author)) continue
-        state.peers[id].retrive.push(msg.author)
+        if(~peer.retrive.indexOf(msg.author)) continue
+        peer.retrive.push(msg.author)
       }
     }
   }
@@ -212,19 +213,20 @@ exports.receive = function (state, ev) {
   //we _know_ that this peer is upto at least this message now.
   //(but maybe they already told us they where ahead further)
   var peer = state.peers[ev.id]
+  var rep = peer.replicating[msg.author]
+
+  //if we havn't asked for this, ignore it. (this is remote speaking protocol wrong!)
+  if(!rep) return state
+
   peer.clock[msg.author] = Math.max(peer.clock[msg.author], msg.sequence)
-  peer.replicating[msg.author].sent =
-    Math.max(
-      peer.replicating[msg.author].sent,
-      msg.sequence
-    )
+  rep.sent = Math.max(rep.sent, msg.sequence)
 
   //if this message has already been seen, ignore.
   if(state.clock[msg.author] > msg.sequence) {
-    if(peer.replicating[msg.author] && peer.replicating[msg.author].rx) {
+    if (rep.rx) {
       peer.notes = peer.notes || {}
       peer.notes[msg.author] = ~state.clock[msg.author]
-      peer.replicating[msg.author].rx = false
+      rep.rx = false
       //XXX activate some other peer?
     }
     return state
@@ -317,15 +319,15 @@ exports.timeout = function (state, ev) {
   var want = {}
   for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
-    //check if the peer hasn't received a connection recently.
+    //check if the peer hasn't received a message recently.
 
-    if((peer.ts | 0) + state.timeout < ev.ts) {
+    //if we havn't received a message from this peer recently
+    if((peer.ts || 0) + state.timeout < ev.ts) {
+      //check if they have claimed a higher sequence, but not sent us
       for(var id in peer.replicating) {
-        //but if the peer has claimed a higher message,
-        //that we havn't received for some reason...
+
         var rep = peer.replicating[id]
-        //note: isAvailable checks that there is some peer that
-        //claims a newer clock for a feed
+        //if yes, prepare to switch this feed to that peer
         if(rep.rx && isAvailable(state, id, peer_id)) {
           want[id] = peer_id
           peer.notes = peer.notes || {}
