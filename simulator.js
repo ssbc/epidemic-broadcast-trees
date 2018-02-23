@@ -94,6 +94,7 @@ function randomFind(obj, iter) {
 function tick (network) {
   return randomFind(network, function (id, peer) {
     //database ops
+    if(peer.state.stalled) return
     return randomFind([function () {
       //append(receive), retrive, retrive_cb
       return randomFind([function () {
@@ -170,17 +171,23 @@ function tick (network) {
     )
   }
 
+  tick.ts = function (_ts) {
+    return ts += (_ts|0)
+  }
+
   tick.run = function (network) {
-    var loop = 1
+    var loop = 1, first = true
     while(loop) {
       loop = 0
       while(tick(network)) loop ++
-      if(loop)
+      if(loop || first) {
         for(var k in network)
           network[k].state = events.timeout(network[k].state, {ts: ts++})
+        if(first) loop = 1
+        first = false
+      }
     }
   }
   return tick
 }
-
 
