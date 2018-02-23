@@ -18,8 +18,9 @@ function isAvailable(state, feed_id, ignore_id) {
   for(var peer_id in state.peers) {
     if(peer_id != ignore_id) {
       var peer = state.peers[peer_id]
-      if(peer.clock[feed_id] || 0 > state.clock[feed_id] > 0)
+      if((peer.clock[feed_id] || 0) > (state.clock[feed_id] || 0)) {
         return true
+      }
     }
   }
 }
@@ -112,7 +113,7 @@ exports.follow = function (state, ev) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
       var peer = state.peers[id]
-      if(!peer.clock) continue;
+      if(!peer.clock) continue
       //cases:
       //  don't have feed
       //  do have feed
@@ -173,7 +174,8 @@ exports.append = function (state, msg) {
 
   for(var id in state.peers) {
     var peer = state.peers[id]
-    if(!peer.clock) continue;
+    if(!peer.clock) continue
+
     var rep = peer.replicating[msg.author]
 
     if(rep && rep.tx && rep.sent == msg.sequence - 1 && msg.sequence > peer.clock[msg.author]) {
@@ -190,7 +192,6 @@ exports.append = function (state, msg) {
     ) {
       peer.notes = peer.notes || {}
       peer.notes[msg.author] = ~msg.sequence
-
     }
   }
 
@@ -302,6 +303,10 @@ exports.notes = function (state, ev) {
       if(seq >= 0 && state.clock[id] > _seq) {
         peer.retrive.push(id)
       }
+      else if(state.clock[id] > _seq && !rep.tx && seq != -1) {
+        peer.notes = peer.notes || {}
+        peer.notes[id] = rep.rx ? ~lseq : lseq
+      }
     }
   }
   peer.recvNotes = (peer.recvNotes || 0) + count
@@ -313,7 +318,8 @@ exports.timeout = function (state, ev) {
   for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
     //check if the peer hasn't received a connection recently.
-    if(peer.ts + state.timeout < ev.ts) {
+
+    if((peer.ts | 0) + state.timeout < ev.ts) {
       for(var id in peer.replicating) {
         //but if the peer has claimed a higher message,
         //that we havn't received for some reason...
@@ -349,6 +355,4 @@ exports.timeout = function (state, ev) {
   }
   return state
 }
-
-
 
