@@ -8,6 +8,7 @@ function timestamp () {
 
 module.exports = function (opts) {
   var state = events.initialize(opts.id, timestamp())
+  state.timeout = opts.timeout || 3000
   state.clock = {}
   var self = {
     id: opts.id,
@@ -81,6 +82,16 @@ module.exports = function (opts) {
         this.streams[k].resume()
     },
   }
+
+  var int = setInterval(function () {
+    self.state = events.timeout(self.state, {ts: timestamp()})
+    self.update()
+  }, state.timeout)
+  if(int.unref) int.unref()
+
   return self
 }
+
+
+
 
