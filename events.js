@@ -47,6 +47,23 @@ function setNotes (peer, feed, seq, rx) {
     peer.replicating[feed].rx = (seq || 0) === 0 || !!rx
 }
 
+function getSequence(seq) {
+  return (
+    !Number.isInteger(seq) ? -1 
+  : seq > -1 ? seq
+  : seq < -1 ? ~seq
+  : -1
+  )
+}
+
+function getReplicate(seq) {
+  return seq !== -1
+}
+
+function getReceive (seq) {
+  return seq > -1
+}
+
 exports.initialize = function (id) {
   return {
     id: id,
@@ -131,18 +148,19 @@ exports.follow = function (state, ev) {
       //  do have feed
       //  peer has feed
       //  peer rejects feed
-      if(peer.clock[ev.id] === -1) {
+      var seq = peer.clock[ev.id], lseq = state.clock[ev.id] || 0
+      if(seq === -1) {
         //peer explicitly does not replicate this feed, don't ask for it.
       }
       else if(ev.value === false) { //unfollow
         setNotes(peer, ev.id, 0, false)
       }
-      else if(ev.value === true && peer.clock[ev.id] != (state.clock[ev.id] || 0)) {
+      else if(ev.value === true && seq != lseq) {
         peer.replicating[ev.id] = {
           rx: true, tx: false,
           sent: -1
         }
-        setNotes(peer, ev.id, state.clock[ev.id], replicating)
+        setNotes(peer, ev.id, lseq, replicating)
         replicating = true
       }
     }
@@ -178,21 +196,21 @@ exports.append = function (state, msg) {
   //check if any peer requires this msg
   if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
 
-  state.clock[msg.author] = msg.sequence
-
+  var lseq = state.clock[msg.author] = msg.sequence
   for(var id in state.peers) {
     var peer = state.peers[id]
     if(!peer.clock) continue
+    var seq = peer.clock[msg.author]
 
     var rep = peer.replicating[msg.author]
 
-    if(rep && rep.tx && rep.sent == msg.sequence - 1 && msg.sequence > peer.clock[msg.author]) {
+    if(rep && rep.tx && rep.sent == lseq - 1 && lseq > seq) {
       peer.msgs.push(msg)
       rep.sent++
     }
     //if we are ahead of this peer, and not in tx mode, let them know that.
     else if(
-      isAhead(msg.sequence, peer.clock[msg.author]) &&
+      isAhead(lseq, seq) &&
       (rep ? !rep.tx && rep.sent != null : state.follows[msg.author])
     )
       setNotes(peer, msg.author, msg.sequence, false)
@@ -250,10 +268,10 @@ exports.notes = function (state, ev) {
   var count = 0
   for(var id in clock) {
     count ++
-    var seq = clock[id]
-    seq = Number.isInteger(seq) ? seq : -1
-    var _seq = seq < -1 ? ~seq : seq
-    peer.clock[id] = _seq
+    var seq = peer.clock[id] = getSequence(clock[id])
+    var tx = getReceive(clock[id]) //seq >= 0
+    var isReplicate = getReplicate(clock[id])// !== -1
+
     var lseq = state.clock[id] || 0
 
     //check if we are not following this feed.
@@ -265,11 +283,11 @@ exports.notes = function (state, ev) {
         rep = peer.replicating[id] = {
           tx: true,
           rx: true,
-          sent: _seq
+          sent: seq
         }
-        setNotes(peer, id, lseq, lseq < _seq && !replicating)
+        setNotes(peer, id, lseq, lseq < seq && !replicating)
       }
-      else if(!rep.rx && _seq > lseq) {
+      else if(!rep.rx && seq > lseq) {
         if(!replicating) {
           peer.ts = ev.ts //remember ts, so we can switch this feed if necessary
           setNotes(peer, id, lseq, true)
@@ -278,22 +296,22 @@ exports.notes = function (state, ev) {
           //switch to this peer if it is further ahead.
           //(todo?: switch if the other peer's timestamp is old?)
           var _peer = state.peers[replicating]
-          if(_seq > _peer.clock[id]) {
+          if(seq > _peer.clock[id]) {
             peer.ts = ev.ts
             setNotes(peer, id, lseq, true)
             setNotes(_peer, id, lseq, false) //deactivate the previous peer
           }
         }
       }
+
       //positive seq means "send this to me please"
-      rep.tx = seq >= 0
+      rep.tx = tx
       //in the case we are already ahead, get ready to send them messages.
-      rep.sent = _seq
-      if(seq >= 0 && state.clock[id] > _seq) {
-        peer.retrive.push(id)
+      rep.sent = seq
+      if(lseq > seq) {
+        if(tx) peer.retrive.push(id)
+        else if(isReplicate) setNotes(peer, id, lseq, rep.rx)
       }
-      else if(state.clock[id] > _seq && !rep.tx && seq != -1)
-        setNotes(peer, id, lseq, rep.rx)
     }
   }
   peer.recvNotes = (peer.recvNotes || 0) + count
