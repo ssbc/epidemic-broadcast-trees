@@ -99,12 +99,13 @@ exports.peerClock = function (state, ev) {
   //create a replication for that peer.
 
   for(var id in state.follows) {
-    if(state.follows[id] && clock[id] !== -1 && (clock[id] != (state.clock[id] || 0))) {
+    var seq = clock[id], lseq = state.clock[id] || 0
+    if(state.follows[id] && seq !== -1 && seq !== lseq) {
 
       //if we are already replicating, and this feed is at zero, ask for it anyway,
       //XXX if a feed is at zero, but we are replicating on another peer
       //just don't ask for it yet?
-      var replicating = isAlreadyReplicating(state, id, ev.id) && state.clock[id]
+      var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
       setNotes(peer, id, state.clock[id] || 0, !replicating)
       peer.replicating = peer.replicating || {}
       var rep = peer.replicating[id] = {
