@@ -393,3 +393,21 @@ test('unfollow', function (t) {
 })
 
 
+test('remember clock of unfollow', function (t) {
+
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true},
+    peers: {}
+  }
+
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{alice: -1}})
+
+  t.deepEqual(state.peers.bob.clock, {alice: -1})
+  t.deepEqual(state.peers.bob.notes, {})
+
+  t.end()
+})
+
+
