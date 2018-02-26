@@ -28,6 +28,21 @@ function has (t, actual, expected, path) {
     has(t, actual[k], expected[k], path.concat(k))
 }
 
+module.exports = function (opts) {
+
+//function toNotes (notes) {
+//  var peer = {notes:null}
+//  for(var k in notes)
+//    opts.setNotes(peer, k, v2.getSequence(notes[k]), opts.getReceive(notes[k]))
+//  return peer.notes
+//}
+
+//function note(seq, rx) {
+//  return rx ? seq : ~seq
+//}
+
+var note = opts.note
+
 test('initialize, connect to new peer', function (t) {
 
   var state = events.initialize()
@@ -50,13 +65,13 @@ test('initialize, connect to new peer', function (t) {
 
   has(t, state.peers.alice, {
     clock: {},
-    notes: { alice: 0 },
+    notes: { alice: note(0, true) },
     replicating: {alice: {rx: true}}
   }, ['state', 'peers', 'alice'])
 
   //lets say we send the note
 
-  state = events.notes(state, {id: 'alice', value: {alice: 2}})
+  state = events.notes(state, {id: 'alice', value: {alice: note(2, true)}})
   has(t, state, {
     clock: {},
     follows: {alice: true},
@@ -175,7 +190,7 @@ test('connect to two peers, append message one send, one note', function (t) {
       },
       charles: {
         clock: { alice: 1 },
-        notes: { alice: -3 },
+        notes: { alice: note(2, false) },
         retrive: [],
         replicating: {
           alice: {
@@ -199,12 +214,12 @@ test('reply to any clock they send, 1', function (t) {
 
   state = events.connect(state, {id: 'bob'})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
-  t.deepEqual(state.peers.bob.notes, {bob: 2, charles: 3})
+  t.deepEqual(state.peers.bob.notes, {bob: note(2, true), charles: note(3, true)})
 
-  state = events.notes(state, {id: 'bob', value: {alice: 3, darlene: 4}})
+  state = events.notes(state, {id: 'bob', value: {alice: note(3, true), darlene: note(4, true)}})
 
   //notes hasn't been sent, so this is merged with previous
-  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2, charles: 3, darlene: -1})
+  t.deepEqual(state.peers.bob.notes, {alice: note(3, false), bob: note(2, true), charles: note(3, true), darlene: note(-1, true)})
 
   t.end()
 })
@@ -220,13 +235,13 @@ test('reply to any clock they send, 2', function (t) {
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
   t.deepEqual(state.peers.bob.notes, {bob: 2})
 
-  state = events.notes(state, {id: 'bob', value: {alice: 3}})
+  state = events.notes(state, {id: 'bob', value: {alice: note(3, true)}})
 
   //notes hasn't been sent, so this is merged with previous
-  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2})
+  t.deepEqual(state.peers.bob.notes, {alice: note(3, false), bob: note(2, true)})
 
   state = events.follow(state, {id: 'charles',value: true})
-  t.deepEqual(state.peers.bob.notes, {alice: ~3, bob: 2, charles: 0})
+  t.deepEqual(state.peers.bob.notes, {alice: note(3, false), bob: note(2, true), charles: note(0, true)})
 
   t.end()
 })
@@ -239,9 +254,9 @@ test('append when not in TX mode', function (t) {
   }
   state = events.connect(state, {id: 'bob'})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
-  t.deepEqual(state.peers.bob.notes, {bob: 2})
+  t.deepEqual(state.peers.bob.notes, {bob: note(2, true)})
 
-  state = events.notes(state, {id: 'bob', value: {alice: ~3}})
+  state = events.notes(state, {id: 'bob', value: {alice: note(3, false)}})
   var rep = state.peers.bob.replicating.alice
   t.equal(rep.tx, false)
   t.equal(rep.sent, 3)
@@ -249,12 +264,12 @@ test('append when not in TX mode', function (t) {
   console.log(state.peers.bob.replicating)
 
   state = events.append(state, {author: 'alice', sequence: 4, content: {}})
-  t.deepEqual(state.peers.bob.notes, {bob: 2, alice: ~4})
+  t.deepEqual(state.peers.bob.notes, {bob: note(2, true), alice: note(4, false)})
   var rep = state.peers.bob.replicating.alice
   t.equal(rep.tx, false)
   t.equal(rep.sent, 3)
 
-  state = events.notes(state, {id: 'bob', value: {alice: 3}})
+  state = events.notes(state, {id: 'bob', value: {alice: note(3, true)}})
   t.deepEqual(state.peers.bob.retrive, ['alice'])
 
   t.end()
@@ -279,21 +294,17 @@ test('note when not in RX mode', function (t) {
     }
   }
 
-  state = events.notes(state, {id: 'bob', value: {alice: ~5}})
+  state = events.notes(state, {id: 'bob', value: {alice: note(5, false)}})
   var rep = state.peers.bob.replicating.alice
 //  t.equal(rep.tx, true)
   t.equal(rep.rx, true)
   t.equal(rep.sent, 5)
-  t.deepEqual(state.peers.bob.notes, {alice: 3})
+  t.deepEqual(state.peers.bob.notes, {alice: note(3, true)})
 
   console.log(state.peers.bob.replicating)
 
 //  state = events.append(state, {author: 'alice', sequence: 4, content: {}})
-//  t.deepEqual(state.peers.bob.notes, {bob: 2, alice: ~4})
-//  var rep = state.peers.bob.replicating.alice
-//  t.equal(rep.tx, false)
-//  t.equal(rep.sent, 3)
-//
+//  t.deepEqual(state.peers.bob.notes, {bob: note(2, true), alice: note(4, false)})
   t.end()
 
 })
@@ -312,7 +323,7 @@ test('note when value is not integer', function (t) {
   state = events.notes(state, {id: 'bob', value: {alice: true}})
 
   t.deepEqual(state.peers.bob.clock, {alice: -1})
-  t.deepEqual(state.peers.bob.notes, {alice: 3, bob: 2})
+  t.deepEqual(state.peers.bob.notes, {alice: note(3,true), bob: note(2, true)})
 
   t.end()
 })
@@ -356,7 +367,7 @@ test('connects in sync then another message', function (t) {
   t.deepEqual(state.peers.bob.replicating, {})
 
   state = events.append(state, {author: 'alice', sequence: 4, content: {}})
-  t.deepEqual(state.peers.bob.notes, {alice: ~4})
+  t.deepEqual(state.peers.bob.notes, {alice: note(4, false)})
   
   t.end()
 })
@@ -374,8 +385,8 @@ test('unfollow', function (t) {
 
   t.deepEqual(state.peers.bob.clock, {})
   t.deepEqual(state.peers.bob.notes, { })
-  state = events.notes(state, {id: 'bob', value:{alice: 3, bob: 2}})
-  t.deepEqual(state.peers.bob.notes, { alice: -1, bob: -1})
+  state = events.notes(state, {id: 'bob', value:{alice: note(3, true), bob: note(2, true)}})
+  t.deepEqual(state.peers.bob.notes, { alice: note(-1, true), bob: note(-1, true)})
 
   state.peers.bob.notes = null
 
@@ -383,10 +394,10 @@ test('unfollow', function (t) {
 
   t.deepEqual(state.peers.bob.notes, null)
 
-  state = events.notes(state, {id: 'bob', value:{charles: -1}})
-  t.deepEqual(state.peers.bob.notes, {charles: -1})
+  state = events.notes(state, {id: 'bob', value:{charles: note(-1, true)}})
+  t.deepEqual(state.peers.bob.notes, {charles: note(-1, true)})
   state.peers.bob.notes = null
-  state = events.notes(state, {id: 'bob', value:{charles: -1}})
+  state = events.notes(state, {id: 'bob', value:{charles: note(-1, true)}})
   t.deepEqual(state.peers.bob.notes, null)
 
   t.end()
@@ -409,5 +420,13 @@ test('remember clock of unfollow', function (t) {
 
   t.end()
 })
+
+
+}
+
+if(!module.parent)
+  module.exports(require('../v2'))
+
+
 
 
