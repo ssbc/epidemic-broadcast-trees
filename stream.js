@@ -1,5 +1,6 @@
 var inherits = require('inherits')
-
+var v2 = require('./v2')
+var v3 = require('./v3')
 function isMsg (m) {
   return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
 }
@@ -10,10 +11,11 @@ function timestamp () {
   return Date.now()
 }
 
-function EBTStream (peer, remote, onClose) {
+function EBTStream (peer, remote, version, onClose) {
   this.paused = true //start out paused
   this.remote = remote
   this.peer = peer
+  this.version = version
   this.peer.state =
     events.connect(this.peer.state, {id: remote, ts: timestamp()})
   this.ended = false
@@ -35,10 +37,16 @@ EBTStream.prototype.write = function (data) {
   if(isMsg(data))
     this.peer.state =
       events.receive(this.peer.state, {id: this.remote, value:data, ts: timestamp()})
-  else
+  else {
+    if(this.version === 2) {
+      var _data = data; data = {}
+      for(var k in _data) {
+        data[k] = v3.note(v2.getSequence(_data[k]), v2.getReceive(_data[k]))
+      }
+    }
     this.peer.state =
       events.notes(this.peer.state, {id: this.remote, value: data, ts: timestamp()})
-
+  }
   this.peer.update(this.remote)
 }
 
@@ -80,6 +88,14 @@ EBTStream.prototype.resume = function () {
     else {
       var notes = state.notes
       state.notes = null
+      if(this.version === 2) {
+        var _notes = {}
+        for(var k in notes) {
+          _notes[k] = v2.note(v3.getSequence(notes[k]), v3.getReceive(notes[k]))
+        }
+        notes = _notes
+      }
+
       if(this.peer.logging) console.error("EBT:send", notes)
       this.sink.write(notes)
     }
@@ -90,3 +106,5 @@ EBTStream.prototype.pipe = require('push-stream/pipe')
 
 return EBTStream
 }
+
+
