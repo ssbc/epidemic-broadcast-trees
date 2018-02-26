@@ -40,7 +40,15 @@ function eachFrom(keys, key, iter) {
 }
 
 var opts = require('./v2')
-var setNotes = opts.setNotes
+
+function setNotes (peer, feed, seq, rx) {
+  peer.notes = peer.notes || {}
+  peer.notes[feed] = opts.note(seq, rx)
+
+  if(peer.replicating[feed])
+    //note: v2 doesn't have a way to represent seq=0 but don't rx, so always rx if zero.
+    peer.replicating[feed].rx = getReceive(peer.notes[feed])
+}
 var getReceive = opts.getReceive
 var getReplicate = opts.getReplicate
 var getSequence = opts.getSequence
@@ -256,7 +264,11 @@ exports.notes = function (state, ev) {
     var lseq = state.clock[id] || 0
 
     //check if we are not following this feed.
-    if(!state.follows[id]) setNotes(peer, id, -1)
+    if(!state.follows[id]) {
+      if(!peer.replicating[id])
+        setNotes(peer, id, -1)
+      peer.replicating[id] = {tx:false, rx:false, sent: -1}
+    }
     else {
       var rep = peer.replicating[id]
       var replicating = isAlreadyReplicating(state, id, ev.id)
@@ -338,10 +350,4 @@ exports.timeout = function (state, ev) {
   }
   return state
 }
-
-
-
-
-
-
 
