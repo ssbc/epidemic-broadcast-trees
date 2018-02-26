@@ -1,17 +1,10 @@
 
-module.exports = require('./v3'); return
-
 exports.note = function (seq, rx) {
-  return seq === -1 ? -1 : rx ? seq || 0 : ~(seq || -1)
+  return seq === -1 ? -1 : seq << 1 | !rx
 }
 
 exports.getSequence = function getSequence(seq) {
-  return (
-    !Number.isInteger(seq) ? -1
-  : seq > -1 ? seq
-  : seq < -1 ? ~seq
-  : -1
-  )
+  return !Number.isInteger(seq) ? -1  : seq >> 1
 }
 
 exports.getReplicate = function getReplicate(seq) {
@@ -19,7 +12,14 @@ exports.getReplicate = function getReplicate(seq) {
 }
 
 exports.getReceive = function getReceive (seq) {
-  return seq > -1
+  return !(seq & 1)
 }
+
+
+
+
+
+
+
 
 
