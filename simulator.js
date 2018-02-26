@@ -1,19 +1,25 @@
 
-var events = require('./events')
+//var events = require('./events')
 var RNG = require('rng')
 
 var log
 
-for(var k in events) (function (fn, k) {
+
+module.exports = function (seed, _log, _events) {
+
+if(!_events) _events = require('./events')(require('./v2'))
+log = _log
+var rng = new RNG.MT(seed || 0)
+
+var events = {}
+
+for(var k in _events) (function (fn, k) {
   events[k] = function (state, value) {
     if(log) console.log(k.toUpperCase()+'('+state.id+')', value)
     return fn(state, value)
   }
-})(events[k],k)
+})(_events[k],k)
 
-module.exports = function (seed, _log) {
-log = _log
-var rng = new RNG.MT(seed || 0)
 
 var output = []
 var ts = 0
@@ -190,4 +196,6 @@ function tick (network) {
   }
   return tick
 }
+
+
 

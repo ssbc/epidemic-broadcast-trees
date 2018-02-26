@@ -1,4 +1,4 @@
-var events = require('./inject')(require('./v2'))
+var events = require('./events')(require('./v2'))
 var Stream = require('./stream')(events)
 var progress = require('./progress')
 
