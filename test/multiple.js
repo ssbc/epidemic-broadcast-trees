@@ -3,6 +3,9 @@ var test = require('tape')
 
 var events = require('../events')
 
+module.exports = function (opts) {
+
+var note = opts.note
 
 test('if connects to multiple peers, should replicate a feed from only one', function (t) {
 
@@ -20,22 +23,20 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
   console.log(state.peers)
 
   state = events.notes(state, {id: 'bob', value: {
-    alice: 3, bob: 5, charles: 9
+    alice: note(3, true), bob: note(5, true), charles: note(9, true)
   }})
   state = events.notes(state, {id: 'charles', value: {
-    alice: 3, bob: 4, charles: 9
+    alice: note(3, true), bob: note(4, true), charles: note(9, true)
   }})
   console.log(state.peers)
 
   //we should only request transmissions from at most one peer.
-
-
   var notes = {}
   for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
     for(var feed_id in peer.notes) {
-      t.equal(peer.notes[feed_id] >= 0, peer.replicating[feed_id].rx, 'implied rx state should be recorded, seq:'+peer.notes[feed_id]+', rx='+peer.replicating[feed_id].rx)
-      if(peer.notes[feed_id] >= 0) {
+      t.equal(opts.getReceive(peer.notes[feed_id]), peer.replicating[feed_id].rx, 'implied rx state should be recorded, seq:'+peer.notes[feed_id]+', rx='+peer.replicating[feed_id].rx)
+      if(opts.getReceive(peer.notes[feed_id])) {
         notes[feed_id] = (notes[feed_id] || 0) + 1
       }
     }
@@ -48,3 +49,7 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
   t.end()
 })
 
+}
+
+if(!module.parent)
+  module.exports(require('../v2'))

@@ -1,6 +1,5 @@
 
 var createSimulator = require('../simulator')
-var events = require('../events')
 var test = require('tape')
 
 function count (output) {
@@ -83,5 +82,6 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
 
 

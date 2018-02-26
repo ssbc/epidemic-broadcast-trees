@@ -1,6 +1,5 @@
 
 var createSimulator = require('../simulator')
-var events = require('../events')
 
 var test = require('tape')
 
@@ -24,9 +23,6 @@ function createTest (seed, log) {
 
     alice.connect(bob)
 
-//    alice.state = events.peerClock(alice.state, {id: 'bob', value: {}})
-//    bob.state = events.peerClock(bob.state, {id: 'alice', value:{}})
-
     while(tick(network)) ;
 
     //should have set up peer.replicatings to tx/rx alice
@@ -42,5 +38,7 @@ if(isNaN(seed))
     createTest(i)
 else
   createTest(+seed, true)
+
+
 
 
