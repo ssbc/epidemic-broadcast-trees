@@ -1,7 +1,4 @@
-
-
 var createPeer = require('../')
-//var options = require('./options')
 var test = require('tape')
 
 function create (id) {
@@ -97,8 +94,8 @@ test('a<->b,b', function (t) {
 
   t.deepEqual(alice.store, bob.store)
 
-  var bs2 = bob.createStream('alice')
-  var as2 = alice.createStream('bob')
+  var bs2 = bob.createStream('alice', 2)
+  var as2 = alice.createStream('bob', 2)
 
   as2.pipe(bs2).pipe(as2)
 
@@ -112,6 +109,48 @@ test('a<->b,b', function (t) {
 
   t.deepEqual(alice.store, bob.store)
 
+  t.end()
+
+})
+
+
+test('a3<->b3<->c2', function (t) {
+
+  var alice = create('alice')
+  var bob = create('bob')
+  var charles = create('charles')
+
+  alice.request('alice', true)
+  alice.request('bob', true)
+  bob.request('alice', true)
+  bob.request('bob', true)
+  charles.request('alice', true)
+  charles.request('bob', true)
+
+  var as3 = alice.createStream('bob', 3)
+  var bs3 = bob.createStream('alice', 3)
+  var bs2 = bob.createStream('charles', 2)
+  var cs2 = charles.createStream('bob', 2)
+
+  console.log('initial.alice:',alice.progress())
+  console.log('initial.bob  :',bob.progress())
+  console.log('initial.charles  :',charles.progress())
+
+  as3.pipe(bs3).pipe(as3)
+  cs2.pipe(bs2).pipe(cs2)
+
+
+  alice.append({author: 'alice', sequence: 1, content: 'hello'}, function () {})
+  bob.append({author: 'bob', sequence: 1, content: 'hello'}, function () {})
+
+  console.log(bob.store)
+  console.log(alice.store)
+
+  console.log('final.alice:',alice.progress())
+  console.log('final.bob  :',bob.progress())
+
+  t.deepEqual(alice.store, bob.store)
+  t.deepEqual(alice.store, charles.store)
   t.end()
 
 })
