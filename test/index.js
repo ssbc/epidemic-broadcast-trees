@@ -361,3 +361,35 @@ test('connects in sync then another message', function (t) {
   t.end()
 })
 
+test('unfollow', function (t) {
+
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {},
+    peers: {}
+  }
+
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{}})
+
+  t.deepEqual(state.peers.bob.clock, {})
+  t.deepEqual(state.peers.bob.notes, { })
+  state = events.notes(state, {id: 'bob', value:{alice: 3, bob: 2}})
+  t.deepEqual(state.peers.bob.notes, { alice: -1, bob: -1})
+
+  state.peers.bob.notes = null
+
+  state = events.follow(state, {id: 'alice', value: false})
+
+  t.deepEqual(state.peers.bob.notes, null)
+
+  state = events.notes(state, {id: 'bob', value:{charles: -1}})
+  t.deepEqual(state.peers.bob.notes, {charles: -1})
+  state.peers.bob.notes = null
+  state = events.notes(state, {id: 'bob', value:{charles: -1}})
+  t.deepEqual(state.peers.bob.notes, null)
+
+  t.end()
+})
+
+
