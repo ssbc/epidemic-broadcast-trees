@@ -8,6 +8,11 @@ var getReceive = opts.getReceive
 var getReplicate = opts.getReplicate
 var getSequence = opts.getSequence
 
+exports.note = opts.note
+exports.getReceive = opts.getReceive
+exports.getReplicate = opts.getReplicate
+exports.getSequence = opts.getSequence
+
 //check if a feed is already being replicated on another peer from ignore_id
 function isAlreadyReplicating(state, feed_id, ignore_id) {
   for(var id in state.peers) {
@@ -360,4 +365,5 @@ exports.timeout = function (state, ev) {
 return exports
 
 }
+
 
