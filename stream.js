@@ -1,11 +1,10 @@
 var inherits = require('inherits')
-var events = require('./events')
 
 function isMsg (m) {
   return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
 }
 
-module.exports = EBTStream
+module.exports = function (events) {
 
 function timestamp () {
   return Date.now()
@@ -89,3 +88,5 @@ EBTStream.prototype.resume = function () {
 
 EBTStream.prototype.pipe = require('push-stream/pipe')
 
+return EBTStream
+}

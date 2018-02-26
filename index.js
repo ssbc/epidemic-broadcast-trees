@@ -1,5 +1,5 @@
-var Stream = require('./stream')
-var events = require('./events')
+var events = require('./inject')(require('./v2'))
+var Stream = require('./stream')(events)
 var progress = require('./progress')
 
 function timestamp () {
@@ -91,7 +91,4 @@ module.exports = function (opts) {
 
   return self
 }
-
-
-
 
