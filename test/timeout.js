@@ -1,6 +1,6 @@
 
 var test = require('tape')
-var events = require('../events')
+var events = require('../events')(require('../v2'))
 
 test('switch peers if timeout exceeded', function (t) {
   var state = {

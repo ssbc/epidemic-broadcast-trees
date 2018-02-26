@@ -1,14 +1,15 @@
 
 var createSimulator = require('../simulator')
-var events = require('../events')
+var _events = require('../events')(require('../v2'))
 var test = require('tape')
 
-for(var k in events) (function (fn, k) {
+var events = {}
+for(var k in _events) (function (fn, k) {
   events[k] = function (state, ev) {
     if(state.stalled) return state
     return fn(state, ev)
   }
-})(events[k], k)
+})(_events[k], k)
 
 
 function createTest (seed, log) {

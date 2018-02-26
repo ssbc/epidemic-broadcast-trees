@@ -8,15 +8,13 @@ function count (output) {
   }, 0)
 }
 
-function pos (n) {
-  return n < -1 ? ~n : n
-}
+var opts = require('../v2')
 
 function flatten (output) {
   return output.reduce(function (a, b) {
     if(b.msg) return a
     for(var k in b.value)
-      a[b.from][k] = pos(b.value[k])
+      a[b.from][k] = opts.getSequence(b.value[k])
     return a
   }, {alice: {}, bob: {}})
 }
@@ -82,6 +80,4 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
-
-
 

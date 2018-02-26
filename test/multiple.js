@@ -1,7 +1,7 @@
 
 var test = require('tape')
 
-var events = require('../events')
+var events = require('../events')(require('../v2'))
 
 module.exports = function (opts) {
 

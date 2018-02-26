@@ -1,7 +1,5 @@
 var test = require('tape')
 
-var events = require('../events')
-
 function isObject(o) {
   return o && 'object' === typeof o
 }
@@ -30,18 +28,8 @@ function has (t, actual, expected, path) {
 
 module.exports = function (opts) {
 
-//function toNotes (notes) {
-//  var peer = {notes:null}
-//  for(var k in notes)
-//    opts.setNotes(peer, k, v2.getSequence(notes[k]), opts.getReceive(notes[k]))
-//  return peer.notes
-//}
-
-//function note(seq, rx) {
-//  return rx ? seq : ~seq
-//}
-
 var note = opts.note
+var events = require('../events')(opts)
 
 test('initialize, connect to new peer', function (t) {
 
@@ -233,7 +221,7 @@ test('reply to any clock they send, 2', function (t) {
 
   state = events.connect(state, {id: 'bob'})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
-  t.deepEqual(state.peers.bob.notes, {bob: 2})
+  t.deepEqual(state.peers.bob.notes, {bob: note(2, true)})
 
   state = events.notes(state, {id: 'bob', value: {alice: note(3, true)}})
 
@@ -426,7 +414,5 @@ test('remember clock of unfollow', function (t) {
 
 if(!module.parent)
   module.exports(require('../v2'))
-
-
 
 
