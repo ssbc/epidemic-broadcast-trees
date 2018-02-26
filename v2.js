@@ -1,5 +1,5 @@
 
-module.exports = require('./v3'); return
+//module.exports = require('./v3'); return
 
 exports.note = function (seq, rx) {
   return seq === -1 ? -1 : rx ? seq || 0 : ~(seq || -1)
