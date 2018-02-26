@@ -39,30 +39,11 @@ function eachFrom(keys, key, iter) {
       return
 }
 
-function setNotes (peer, feed, seq, rx) {
-  peer.notes = peer.notes || {}
-  peer.notes[feed] = seq === -1 ? -1 : rx ? seq || 0 : ~(seq || -1)
-  if(peer.replicating[feed])
-    //note: we don't have a way to represent seq=0 but don't rx, so always rx if zero.
-    peer.replicating[feed].rx = (seq || 0) === 0 || !!rx
-}
-
-function getSequence(seq) {
-  return (
-    !Number.isInteger(seq) ? -1 
-  : seq > -1 ? seq
-  : seq < -1 ? ~seq
-  : -1
-  )
-}
-
-function getReplicate(seq) {
-  return seq !== -1
-}
-
-function getReceive (seq) {
-  return seq > -1
-}
+var opts = require('./v2')
+var setNotes = opts.setNotes
+var getReceive = opts.getReceive
+var getReplicate = opts.getReplicate
+var getSequence = opts.getSequence
 
 exports.initialize = function (id) {
   return {
@@ -138,7 +119,7 @@ exports.peerClock = function (state, ev) {
 exports.follow = function (state, ev) {
   //set to true once we have asked for this feed from someone.
   var replicating = false
-  if(state.follows[ev.id] !== ev.value) {
+  if(!!state.follows[ev.id] !== ev.value) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
       var peer = state.peers[id]
@@ -153,7 +134,7 @@ exports.follow = function (state, ev) {
         //peer explicitly does not replicate this feed, don't ask for it.
       }
       else if(ev.value === false) { //unfollow
-        setNotes(peer, ev.id, 0, false)
+        setNotes(peer, ev.id, -1, false)
       }
       else if(ev.value === true && seq != lseq) {
         peer.replicating[ev.id] = {
@@ -357,4 +338,10 @@ exports.timeout = function (state, ev) {
   }
   return state
 }
+
+
+
+
+
+
 
