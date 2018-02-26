@@ -1,5 +1,6 @@
 
 var createSimulator = require('../simulator')
+var options = require('./options')
 var test = require('tape')
 
 function count (output) {
@@ -8,21 +9,18 @@ function count (output) {
   }, 0)
 }
 
-var opts = require('../v2')
-
 function flatten (output) {
   return output.reduce(function (a, b) {
     if(b.msg) return a
     for(var k in b.value)
-      a[b.from][k] = opts.getSequence(b.value[k])
+      a[b.from][k] = options.getSequence(b.value[k])
     return a
   }, {alice: {}, bob: {}})
 }
 
 function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log)
-
+    var tick = createSimulator(seed, log, options)
 
     var network = {}
     var alice = network['alice'] = tick.createPeer('alice')
@@ -80,4 +78,5 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
 

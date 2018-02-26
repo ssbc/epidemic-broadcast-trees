@@ -1,6 +1,7 @@
 
 
 var createPeer = require('../')
+//var options = require('./options')
 var test = require('tape')
 
 function create (id) {
@@ -114,6 +115,4 @@ test('a<->b,b', function (t) {
   t.end()
 
 })
-
-
 

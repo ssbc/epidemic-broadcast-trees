@@ -26,10 +26,9 @@ function has (t, actual, expected, path) {
     has(t, actual[k], expected[k], path.concat(k))
 }
 
-module.exports = function (opts) {
+module.exports = function (events) {
 
-var note = opts.note
-var events = require('../events')(opts)
+var note = events.note
 
 test('initialize, connect to new peer', function (t) {
 
@@ -413,6 +412,6 @@ test('remember clock of unfollow', function (t) {
 }
 
 if(!module.parent)
-  module.exports(require('../v2'))
+  module.exports(require('./options'))
 
 

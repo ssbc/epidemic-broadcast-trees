@@ -1,11 +1,9 @@
 
 var test = require('tape')
 
-var events = require('../events')(require('../v2'))
+module.exports = function (events) {
 
-module.exports = function (opts) {
-
-var note = opts.note
+var note = events.note
 
 test('if connects to multiple peers, should replicate a feed from only one', function (t) {
 
@@ -35,8 +33,8 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
   for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
     for(var feed_id in peer.notes) {
-      t.equal(opts.getReceive(peer.notes[feed_id]), peer.replicating[feed_id].rx, 'implied rx state should be recorded, seq:'+peer.notes[feed_id]+', rx='+peer.replicating[feed_id].rx)
-      if(opts.getReceive(peer.notes[feed_id])) {
+      t.equal(events.getReceive(peer.notes[feed_id]), peer.replicating[feed_id].rx, 'implied rx state should be recorded, seq:'+peer.notes[feed_id]+', rx='+peer.replicating[feed_id].rx)
+      if(events.getReceive(peer.notes[feed_id])) {
         notes[feed_id] = (notes[feed_id] || 0) + 1
       }
     }
@@ -52,4 +50,6 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
 }
 
 if(!module.parent)
-  module.exports(require('../v2'))
+  module.exports(require('./options'))
+
+
