@@ -152,7 +152,7 @@ exports.follow = function (state, ev) {
           rx: true, tx: false,
           sent: -1
         }
-        setNotes(peer, ev.id, lseq, replicating)
+        setNotes(peer, ev.id, lseq, !replicating)
         replicating = true
       }
     }
@@ -292,7 +292,10 @@ exports.notes = function (state, ev) {
           //switch to this peer if it is further ahead.
           //(todo?: switch if the other peer's timestamp is old?)
           var _peer = state.peers[replicating]
-          if(seq > _peer.clock[id]) {
+          // note: _peer.clock[id] may be undefined, if we have
+          // just connected to them and sent our notes but not
+          // received theirs.
+          if(seq > (_peer.clock[id] || 0)) {
             peer.ts = ev.ts
             setNotes(peer, id, lseq, true)
             setNotes(_peer, id, lseq, false) //deactivate the previous peer
@@ -357,5 +360,4 @@ exports.timeout = function (state, ev) {
 return exports
 
 }
-
 
