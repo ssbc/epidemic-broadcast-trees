@@ -42,9 +42,9 @@ function createPeer(id) {
       state = events.clock(state, clock)
     },
     connect: function (other) {
-      state = events.connect(state, {id: other.id, ts: ++ts})
+      state = events.connect(state, {id: other.id, ts: ++ts, client: true})
       state = events.peerClock(state, {id: other.id, value: pClock[other.id] || {}, ts: ++ts})
-      other.state = events.connect(other.state, {id: this.id, ts: ++ts})
+      other.state = events.connect(other.state, {id: this.id, ts: ++ts, client: false})
       other.state = events.peerClock(other.state, {id: id, value: other.clocks[id] || {}, ts: ++ts})
     },
     disconnect: function (other) {
