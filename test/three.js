@@ -1,5 +1,5 @@
 
-var createSimulator = require('../simulator')
+var createSimulator = require('./simulator')
 var options = require('./options')
 
 var test = require('tape')
