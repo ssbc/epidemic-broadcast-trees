@@ -19,7 +19,7 @@ function isAlreadyReplicating(state, feed_id, ignore_id) {
     if(id !== ignore_id) {
       var peer = state.peers[id]
       if(peer.notes && getReceive(peer.notes[id])) return id
-      if(peer.replicating[feed_id] && peer.replicating[feed_id].rx) return id
+      if(peer.replicating && peer.replicating[feed_id] && peer.replicating[feed_id].rx) return id
     }
   }
   return false
@@ -80,10 +80,11 @@ exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
   state.peers[ev.id] = {
     clock: null,
+    client: !!ev.client,
     msgs: [],
     retrive: [],
     notes: null,
-    replicating: {}
+    replicating: ev.client ? null : {}
   }
 
   return state
@@ -102,6 +103,9 @@ exports.peerClock = function (state, ev) {
   var peer = state.peers[ev.id]
   var clock = peer.clock = ev.value
 
+  //client should wait for the server notes, so that stream
+  //can error before a peer sends a massive handshake.
+  if(peer.replicating == null) return state
 
   //always set an empty clock here, so that if we don't have anything
   //to send, we still send this empty clock. This only happens on a new connection.
@@ -139,7 +143,7 @@ exports.follow = function (state, ev) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
       var peer = state.peers[id]
-      if(!peer.clock) continue
+      if(!peer.clock || !peer.replicating) continue
       //cases:
       //  don't have feed
       //  do have feed
@@ -169,6 +173,7 @@ exports.retrive = function (state, msg) {
   //check if any peer requires this msg
   for(var id in state.peers) {
     var peer = state.peers[id]
+    if(!peer.replicating) continue;
     var rep = peer.replicating[msg.author]
     if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
@@ -196,7 +201,7 @@ exports.append = function (state, msg) {
   var lseq = state.clock[msg.author] = msg.sequence
   for(var id in state.peers) {
     var peer = state.peers[id]
-    if(!peer.clock) continue
+    if(!peer.clock || !peer.replicating) continue
     var seq = peer.clock[msg.author]
 
     var rep = peer.replicating[msg.author]
@@ -262,7 +267,14 @@ exports.notes = function (state, ev) {
   var peer = state.peers[ev.id]
   if(!peer) throw new Error('lost state of peer:'+ev.id)
   if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
-  var count = 0
+  var count = 0, first = false
+
+  //if we are client, and this is the first notes we receive
+  if(!peer.replicating) {
+    peer.replicating = {}
+    state = exports.peerClock(state, {id: ev.id, value: state.peers[ev.id].clock})
+  }
+
   for(var id in clock) {
     count ++
     var seq = peer.clock[id] = getSequence(clock[id])
@@ -318,6 +330,7 @@ exports.notes = function (state, ev) {
       }
     }
   }
+
   peer.recvNotes = (peer.recvNotes || 0) + count
   return state
 }
@@ -365,5 +378,4 @@ exports.timeout = function (state, ev) {
 return exports
 
 }
-
 
