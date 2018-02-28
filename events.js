@@ -13,6 +13,23 @@ exports.getReceive = opts.getReceive
 exports.getReplicate = opts.getReplicate
 exports.getSequence = opts.getSequence
 
+function isEmpty (o) {
+  for(var k in o) return false
+  return true
+}
+
+function isObject (o) {
+  return o && 'object' === typeof o
+}
+
+function isBlocked(state, id, target) {
+  return state.blocks[id] && state.blocks[id][target]
+}
+
+function isShared (state, id, peer_id) {
+  return state.follows[id] && !isBlocked(state, id, peer_id)
+}
+
 //check if a feed is already being replicated on another peer from ignore_id
 function isAlreadyReplicating(state, feed_id, ignore_id) {
   for(var id in state.peers) {
@@ -31,6 +48,7 @@ function isAvailable(state, feed_id, ignore_id) {
   for(var peer_id in state.peers) {
     if(peer_id != ignore_id) {
       var peer = state.peers[peer_id]
+      //BLOCK: check wether id has blocked this peer
       if((peer.clock[feed_id] || 0) > (state.clock[feed_id] || 0)) {
         return true
       }
@@ -66,6 +84,7 @@ exports.initialize = function (id) {
     id: id,
     clock: null,
     follows: {},
+    blocks: {},
     peers: {},
     receive: []
   }
@@ -78,6 +97,8 @@ exports.clock = function (state, clock) {
 
 exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
+  if(isBlocked(state, state.id, ev.id)) return state
+
   state.peers[ev.id] = {
     clock: null,
     client: !!ev.client,
@@ -118,7 +139,8 @@ exports.peerClock = function (state, ev) {
 
   for(var id in state.follows) {
     var seq = clock[id], lseq = state.clock[id] || 0
-    if(state.follows[id] && seq !== -1 && seq !== lseq) {
+    //BLOCK: check wether id has blocked this peer
+    if(isShared(state, id, ev.id) && seq !== -1 && seq !== lseq) {
 
       //if we are already replicating, and this feed is at zero, ask for it anyway,
       //XXX if a feed is at zero, but we are replicating on another peer
@@ -143,7 +165,10 @@ exports.follow = function (state, ev) {
     state.follows[ev.id] = ev.value
     for(var id in state.peers) {
       var peer = state.peers[id]
-      if(!peer.clock || !peer.replicating) continue
+      if(!peer.clock || !peer.replicating || !isShared(state, ev.id, id)) continue
+      //BLOCK: check wether this feed has has blocked this peer.
+      //..... don't replicate feeds with peers that have blocked them at all?
+
       //cases:
       //  don't have feed
       //  do have feed
@@ -174,7 +199,9 @@ exports.retrive = function (state, msg) {
   for(var id in state.peers) {
     var peer = state.peers[id]
     if(!peer.replicating) continue;
+    //BLOCK: check wether id has blocked this peer
     var rep = peer.replicating[msg.author]
+
     if(rep && rep.tx && rep.sent === msg.sequence - 1) {
       rep.sent ++
       peer.msgs.push(msg)
@@ -201,7 +228,9 @@ exports.append = function (state, msg) {
   var lseq = state.clock[msg.author] = msg.sequence
   for(var id in state.peers) {
     var peer = state.peers[id]
-    if(!peer.clock || !peer.replicating) continue
+    if(!peer.clock || !peer.replicating || !isShared(state, msg.author, id)) continue
+    //BLOCK: check wether msg.author has blocked this peer
+
     var seq = peer.clock[msg.author]
 
     var rep = peer.replicating[msg.author]
@@ -264,6 +293,12 @@ exports.receive = function (state, ev) {
 exports.notes = function (state, ev) {
   //update replicating modes
   var clock = ev.value
+
+  //support sending clocks inside a thing with additional properties.
+  //this is to allow room for backwards compatible upgrades.
+  if(isObject(ev.value.clock))
+    clock = ev.value.clock
+
   var peer = state.peers[ev.id]
   if(!peer) throw new Error('lost state of peer:'+ev.id)
   if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
@@ -277,6 +312,7 @@ exports.notes = function (state, ev) {
 
   for(var id in clock) {
     count ++
+
     var seq = peer.clock[id] = getSequence(clock[id])
     var tx = getReceive(clock[id]) //seq >= 0
     var isReplicate = getReplicate(clock[id])// !== -1
@@ -284,7 +320,8 @@ exports.notes = function (state, ev) {
     var lseq = state.clock[id] || 0
 
     //check if we are not following this feed.
-    if(!state.follows[id]) {
+    //BLOCK: or wether id has blocked this peer
+    if(!isShared(state, id, ev.id)) {
       if(!peer.replicating[id])
         setNotes(peer, id, -1)
       peer.replicating[id] = {tx:false, rx:false, sent: -1}
@@ -373,6 +410,28 @@ exports.timeout = function (state, ev) {
     })
   }
   return state
+}
+
+exports.block = function (state, ev) {
+  if(!ev.value) {
+    if(state.blocks[ev.id]) delete state.blocks[ev.id][ev.target]
+    if(isEmpty(state.blocks[ev.id]))
+        delete state.blocks[ev.id]
+  }
+  else {
+    state.blocks[ev.id] = state.blocks[ev.id] || {}
+    state.blocks[ev.id][ev.target] = true
+  }
+
+  for(var id in state.peers) {
+    var peer = state.peers[id]
+    if(!peer.replicating) continue
+    if(id === ev.target && peer.replicating[ev.id])
+      setNotes(peer, ev.id, -1, false)
+  }
+
+  return state
+
 }
 
 return exports

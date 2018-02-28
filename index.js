@@ -22,6 +22,10 @@ module.exports = function (opts) {
       self.state = events.follow(self.state, {id: id, value: follows !== false, ts: timestamp()})
       self.update()
     },
+    block: function (id, target, value) {
+      self.state = events.block(self.state, {id: id, target: target, value: value !== false, ts: timestamp()})
+      self.update()
+    },
     createStream: function (remote_id, version, client) {
       if(this.streams[remote_id])
         this.streams[remote_id].end(new Error('reconnected to peer'))
@@ -52,9 +56,9 @@ module.exports = function (opts) {
       self.state = events.append(self.state, msg)
       self.update()
     },
-    _append: function (err, msg) {
-      if(msg) {
-        self.onAppend(msg)
+    _append: function (err, data) {
+      if(data) {
+        self.onAppend(data.value ? data.value : data)
       }
       else
         //this definitely can happen.
@@ -91,4 +95,5 @@ module.exports = function (opts) {
 
   return self
 }
+
 
