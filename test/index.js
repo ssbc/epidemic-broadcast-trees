@@ -137,6 +137,8 @@ test('connect to two peers, append message one send, one note', function (t) {
 
   var state = {
     clock: { alice: 1 },
+    follows: { alice: true },
+    blocks: {},
     peers: {
       bob: {
         clock: { alice: 1 },
@@ -196,6 +198,7 @@ test('reply to any clock they send, 1', function (t) {
   var state = {
     clock: { alice: 3, bob: 2, charles: 3 },
     follows: { alice: true, bob: true, charles: true, darlene: false },
+    blocks: {},
     peers: {}
   }
 
@@ -214,8 +217,8 @@ test('reply to any clock they send, 1', function (t) {
 test('reply to any clock they send, 2', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
-    peers: {}
+    follows: { alice: true, bob: true}, blocks: {},
+    peers: {},
   }
 
   state = events.connect(state, {id: 'bob'})
@@ -236,7 +239,7 @@ test('reply to any clock they send, 2', function (t) {
 test('append when not in TX mode', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
+    follows: { alice: true, bob: true}, blocks: {},
     peers: {}
   }
   state = events.connect(state, {id: 'bob'})
@@ -265,7 +268,7 @@ test('append when not in TX mode', function (t) {
 test('note when not in RX mode', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
+    follows: { alice: true, bob: true}, blocks: {},
     peers: {
       bob: {
         clock: {alice: 3, bob: 2},
@@ -299,7 +302,7 @@ test('note when not in RX mode', function (t) {
 test('note when value is not integer', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
+    follows: { alice: true, bob: true}, blocks: {},
     peers: {}
   }
 
@@ -318,7 +321,7 @@ test('note when value is not integer', function (t) {
 test('test sends empty clock if nothing needed', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
+    follows: { alice: true, bob: true}, blocks: {},
     peers: {}
   }
 
@@ -339,7 +342,7 @@ test('test sends empty clock if nothing needed', function (t) {
 test('connects in sync then another message', function (t) {
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: { alice: true, bob: true},
+    follows: { alice: true, bob: true}, blocks: {},
     peers: {}
   }
 
@@ -363,7 +366,7 @@ test('unfollow', function (t) {
 
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: {},
+    follows: {}, blocks: {},
     peers: {}
   }
 
@@ -395,7 +398,7 @@ test('remember clock of unfollow', function (t) {
 
   var state = {
     clock: { alice: 3, bob: 2},
-    follows: {alice: true},
+    follows: {alice: true}, blocks: {},
     peers: {}
   }
 
@@ -405,6 +408,23 @@ test('remember clock of unfollow', function (t) {
   t.deepEqual(state.peers.bob.clock, {alice: -1})
   t.deepEqual(state.peers.bob.notes, {})
 
+  t.end()
+})
+
+test('notes can be passed inside {clock:{}} object', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true}, blocks: {},
+    peers: {}
+  }
+  state = events.connect(state, {id: 'bob'})
+  state = events.peerClock(state, {id: 'bob', value:{alice: -1}})
+
+  state = events.notes(state, {id: 'bob', value: {
+    clock: {bob: note(4, true)}
+  }})
+
+  t.equal(state.peers.bob.clock.bob, 4)
   t.end()
 })
 
