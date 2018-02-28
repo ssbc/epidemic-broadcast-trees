@@ -22,11 +22,11 @@ module.exports = function (opts) {
       self.state = events.follow(self.state, {id: id, value: follows !== false, ts: timestamp()})
       self.update()
     },
-    createStream: function (remote_id, version) {
+    createStream: function (remote_id, version, client) {
       if(this.streams[remote_id])
         this.streams[remote_id].end(new Error('reconnected to peer'))
       if(this.logging) console.error('EBT:conn', remote_id)
-      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, function (peerState) {
+      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
       opts.getClock(remote_id, function (err, clock) {

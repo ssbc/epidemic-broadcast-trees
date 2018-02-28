@@ -11,13 +11,13 @@ function timestamp () {
   return Date.now()
 }
 
-function EBTStream (peer, remote, version, onClose) {
+function EBTStream (peer, remote, version, client, onClose) {
   this.paused = true //start out paused
   this.remote = remote
   this.peer = peer
   this.version = version
   this.peer.state =
-    events.connect(this.peer.state, {id: remote, ts: timestamp()})
+    events.connect(this.peer.state, {id: remote, ts: timestamp(), client: client})
   this.ended = false
   this._onClose = onClose
   this.sink = this.source = null
