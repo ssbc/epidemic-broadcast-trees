@@ -42,8 +42,8 @@ test('a<->b', function (t) {
   bob.request('alice', true)
   bob.request('bob', true)
 
-  var as = alice.createStream('bob')
-  var bs = bob.createStream('alice')
+  var as = alice.createStream('bob', 3, false)
+  var bs = bob.createStream('alice', 3, true)
 
   console.log('initial.alice:',alice.progress())
   console.log('initial.bob  :',bob.progress())
@@ -75,8 +75,8 @@ test('a<->b,b', function (t) {
   bob.request('alice', true)
   bob.request('bob', true)
 
-  var as = alice.createStream('bob')
-  var bs = bob.createStream('alice')
+  var as = alice.createStream('bob', 3, true)
+  var bs = bob.createStream('alice', 3, false)
 
   console.log('initial.alice:',alice.progress())
   console.log('initial.bob  :',bob.progress())
@@ -94,8 +94,8 @@ test('a<->b,b', function (t) {
 
   t.deepEqual(alice.store, bob.store)
 
-  var bs2 = bob.createStream('alice', 2)
-  var as2 = alice.createStream('bob', 2)
+  var bs2 = bob.createStream('alice', 2, true)
+  var as2 = alice.createStream('bob', 2, false)
 
   as2.pipe(bs2).pipe(as2)
 
@@ -127,10 +127,10 @@ test('a3<->b3<->c2', function (t) {
   charles.request('alice', true)
   charles.request('bob', true)
 
-  var as3 = alice.createStream('bob', 3)
-  var bs3 = bob.createStream('alice', 3)
-  var bs2 = bob.createStream('charles', 2)
-  var cs2 = charles.createStream('bob', 2)
+  var as3 = alice.createStream('bob', 3, true)
+  var bs3 = bob.createStream('alice', 3, false)
+  var bs2 = bob.createStream('charles', 2, false)
+  var cs2 = charles.createStream('bob', 2, true)
 
   console.log('initial.alice:',alice.progress())
   console.log('initial.bob  :',bob.progress())
