@@ -74,9 +74,12 @@ function setNotes (peer, feed, seq, rx) {
   peer.notes = peer.notes || {}
   peer.notes[feed] = opts.note(seq, rx)
 
-  if(peer.replicating[feed])
+  var rep = peer.replicating[feed]
+  if(rep) {
     //note: v2 doesn't have a way to represent seq=0 but don't rx, so always rx if zero.
-    peer.replicating[feed].rx = getReceive(peer.notes[feed])
+    rep.rx = getReceive(peer.notes[feed])
+    rep.requested = seq
+  }
 }
 
 exports.initialize = function (id) {
@@ -146,11 +149,11 @@ exports.peerClock = function (state, ev) {
       //XXX if a feed is at zero, but we are replicating on another peer
       //just don't ask for it yet?
       var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
-      setNotes(peer, id, state.clock[id] || 0, !replicating)
       peer.replicating = peer.replicating || {}
       var rep = peer.replicating[id] = {
-        tx: false, rx: !replicating, sent: null
+        tx: false, rx: !replicating, sent: null, requested: state.clock[id]
       }
+      setNotes(peer, id, state.clock[id] || 0, !replicating)
     }
   }
 
@@ -184,7 +187,7 @@ exports.follow = function (state, ev) {
       else if(ev.value === true && seq != lseq) {
         peer.replicating[ev.id] = {
           rx: true, tx: false,
-          sent: -1
+          sent: -1, requested: lseq
         }
         setNotes(peer, ev.id, lseq, !replicating)
         replicating = true
@@ -324,7 +327,7 @@ exports.notes = function (state, ev) {
     if(!isShared(state, id, ev.id)) {
       if(!peer.replicating[id])
         setNotes(peer, id, -1)
-      peer.replicating[id] = {tx:false, rx:false, sent: -1}
+      peer.replicating[id] = {tx:false, rx:false, sent: -1, requested: -1}
     }
     else {
       var rep = peer.replicating[id]
@@ -333,7 +336,8 @@ exports.notes = function (state, ev) {
         rep = peer.replicating[id] = {
           tx: true,
           rx: true,
-          sent: seq
+          sent: seq,
+          requested: lseq
         }
         setNotes(peer, id, lseq, lseq < seq && !replicating)
       }
@@ -400,7 +404,7 @@ exports.timeout = function (state, ev) {
       if(peer.clock[feed_id] || 0 > state.clock[feed_id] || 0) {
         peer.replicating = peer.replicating || {}
         var rep = peer.replicating[feed_id] = peer.replicating[feed_id] || {
-          tx: false, rx: true, sent: -1
+          tx: false, rx: true, sent: -1, requested: state.clock[feed_id]
         }
         setNotes(peer, feed_id, state.clock[feed_id], true)
         peer.ts = ev.ts
@@ -437,4 +441,6 @@ exports.block = function (state, ev) {
 return exports
 
 }
+
+
 
