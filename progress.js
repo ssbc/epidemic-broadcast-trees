@@ -11,7 +11,7 @@
 
 module.exports = function (state) {
   var prog = {start:0, current: 0, target: 0}
-  for(var peer_id in state.peers)
+  for(var peer_id in state.peers) {
     var peer = state.peers[peer_id]
 
 //    prog.target ++
@@ -38,6 +38,8 @@ module.exports = function (state) {
         prog.target += lseq - seq
       }
     }
+  }
   return prog
 }
+
 
