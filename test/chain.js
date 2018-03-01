@@ -1,6 +1,7 @@
 
 var createSimulator = require('./simulator')
 var options = require('./options')
+var progress = require('../progress')
 
 var test = require('tape')
 
@@ -34,6 +35,16 @@ function createTest (seed, log) {
 
     t.deepEqual(bob.store, alice.store, 'alice<->bob')
     t.deepEqual(charles.store, bob.store, 'charles<->bob')
+
+    function isComplete (peer) {
+      var prog = progress(peer.state)
+      t.equal(prog.current, prog.target)
+    }
+
+    isComplete(alice)
+    isComplete(bob)
+    isComplete(charles)
+
     t.end()
   })
 }
@@ -44,4 +55,8 @@ if(isNaN(seed))
     createTest(i, false)
 else
   createTest(+seed, true)
+
+
+
+
 

@@ -49,8 +49,14 @@ function createTest (seed, log) {
     dawn.connect(bob)
 
     tick.run(network)
-    carl.state.stalled = true
+//    carl.state.stalled = true
+
+//    alice.disconnect(carl)
+    bob.disconnect(carl)
+//    dawn.disconnect(carl)
+
     alice.append({author: 'alice', sequence: 4, content: {}})
+
 
     tick.run(network)
 
@@ -74,6 +80,8 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
+
 
 
 

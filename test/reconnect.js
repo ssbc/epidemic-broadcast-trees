@@ -1,6 +1,7 @@
 
 var createSimulator = require('./simulator')
 var options = require('./options')
+var progress = require('../progress')
 var test = require('tape')
 
 function count (output) {
@@ -70,6 +71,16 @@ function createTest (seed, log) {
     t.deepEqual(bob.store, alice.store)
     console.log('4', tick.output)
     tick.output.splice(0, tick.output.length)
+
+
+    function isComplete (peer, name) {
+      var prog = progress(peer.state)
+      t.equal(prog.current, prog.target, name +' is complete')
+    }
+
+    isComplete(alice, 'alice')
+    isComplete(bob, 'bob')
+
     t.end()
   })
 }
@@ -78,5 +89,6 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
 
 

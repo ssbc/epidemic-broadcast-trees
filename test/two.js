@@ -1,5 +1,6 @@
 var createSimulator = require('./simulator')
 var options = require('./options')
+var progress = require('../progress')
 
 var test = require('tape')
 
@@ -61,6 +62,13 @@ function createTest (seed, log) {
     t.equal(totals[1], 3*2, 'number of handshakes sent is connections*2')
     t.equal(totals[2], 6*(3-1), 'number of msgs sent is msgs*(peers-1)')
 
+    var prog = progress(alice.state)
+    t.equal(prog.current, prog.target)
+    var prog2 = progress(bob.state)
+    t.equal(prog2.current, prog2.target)
+
+    console.log(alice.state.peers.bob)
+
     if(log)
       console.log(
         tick.output.map(function (e) {
@@ -78,5 +86,7 @@ function createTest (seed, log) {
 var seed = process.argv[2]
 if(isNaN(seed)) for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
+
 
 
