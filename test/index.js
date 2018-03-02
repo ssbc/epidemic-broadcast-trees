@@ -428,10 +428,31 @@ test('notes can be passed inside {clock:{}} object', function (t) {
   t.end()
 })
 
+test('test if timeout happens while loading', function (t) {
+
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.peerClock(state, {id: 'bob', value:{alice: note(0, true), bob: note(0, true)}})
+
+  state = events.connect(state, {id: 'charles', ts: 2})
+  console.log(state)
+  state = events.timeout(state, {ts: 4})
+
+  t.end()
+})
+
+
 
 }
 
 if(!module.parent)
   module.exports(require('./options'))
+
 
 
