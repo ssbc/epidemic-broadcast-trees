@@ -49,7 +49,7 @@ function isAvailable(state, feed_id, ignore_id) {
     if(peer_id != ignore_id) {
       var peer = state.peers[peer_id]
       //BLOCK: check wether id has blocked this peer
-      if((peer.clock[feed_id] || 0) > (state.clock[feed_id] || 0)) {
+      if((peer.clock && peer.clock[feed_id] || 0) > (state.clock[feed_id] || 0) && isShared(state, feed_id, peer_id)) {
         return true
       }
     }
