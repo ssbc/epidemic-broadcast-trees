@@ -32,7 +32,7 @@ EBTStream.prototype.clock = function (clock) {
 }
 
 EBTStream.prototype.write = function (data) {
-  if(this.peer.logging) console.error("EBT:recv", data)
+  if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
   if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
   if(isMsg(data))
     this.peer.state =
@@ -82,7 +82,7 @@ EBTStream.prototype.resume = function () {
   if(!this.sink || this.sink.paused) return
   while(this.canSend()) {
     if(state.msgs.length) {
-      if(this.peer.logging) console.error("EBT:send", state.msgs[0])
+      if(this.peer.logging) console.error("EBT:send", JSON.stringify(state.msgs[0], null, 2))
       this.sink.write(state.msgs.shift())
     }
     else {
