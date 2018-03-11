@@ -88,14 +88,12 @@ test('initialize, connect to new peer', function (t) {
         }
       }
     },
-    receive: [msg],
+    receive: [{id: 'alice', value: msg}],
   })
 
-  var msg = state.receive.shift()
+  var ev = state.receive.shift()
 
-  state = events.append(state, msg)
-
-  console.log(state)
+  state = events.append(state, ev.value)
 
   has(t, state, {
     clock: {alice: 1}
@@ -103,7 +101,7 @@ test('initialize, connect to new peer', function (t) {
 
   var msg2 = {author: 'alice', sequence: 2, content: {}}
   state = events.receive(state, {id: 'alice', value:msg2})
-  state = events.append(state, state.receive.shift())
+  state = events.append(state, state.receive.shift().value)
 
   has(t, state, {
     clock: {alice: 2}
@@ -111,7 +109,7 @@ test('initialize, connect to new peer', function (t) {
 
   var msg3 = {author: 'alice', sequence: 3, content: {}}
   state = events.receive(state, {id: 'alice', value:msg3})
-  state = events.append(state, state.receive.shift())
+  state = events.append(state, state.receive.shift().value)
 
   has(t, state, {
     clock: {alice: 3}
