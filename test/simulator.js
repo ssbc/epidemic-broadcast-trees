@@ -24,7 +24,9 @@ for(var k in _events) (function (fn, k) {
 var output = []
 var ts = 0
 
-function createPeer(id) {
+function createPeer(id, validate) {
+
+  validate = validate || function () {}
   var store = {}, state = events.initialize(id), self
   var ts = 0
   var pClock = {}
@@ -60,6 +62,7 @@ function createPeer(id) {
     append: function (msg) {
       var ary = store[msg.author] = store[msg.author] || []
       if(msg.sequence === ary.length + 1) {
+        validate (store[msg.author], msg)
         ary.push(msg)
         state = events.append(state, msg)
       }
@@ -112,8 +115,12 @@ function tick (network) {
         })
       }, function () {
         if(peer.state.receive.length) {
-          var msg = peer.state.receive.shift()
-          peer.append(msg)
+          var ev = peer.state.receive.shift()
+          try {
+            peer.append(ev.value)
+          } catch (err) {
+            return peer.state = events.block(peer.state, {id: ev.value.author, target: ev.id, value: true})
+          }
           return true
         }
       }, function () {
