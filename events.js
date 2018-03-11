@@ -42,6 +42,12 @@ function isAlreadyReplicating(state, feed_id, ignore_id) {
   return false
 }
 
+function max (a, b) {
+  if(a == null) return b
+  if(a == -1) return b
+  return Math.max(a, b)
+}
+
 //check if a feed is available from a peer apart from ignore_id
 
 function isAvailable(state, feed_id, ignore_id) {
@@ -316,7 +322,7 @@ exports.notes = function (state, ev) {
   for(var id in clock) {
     count ++
 
-    var seq = peer.clock[id] = getSequence(clock[id])
+    var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
     var tx = getReceive(clock[id]) //seq >= 0
     var isReplicate = getReplicate(clock[id])// !== -1
 
