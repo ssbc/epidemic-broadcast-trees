@@ -282,15 +282,20 @@ exports.receive = function (state, ev) {
   rep.sent = Math.max(rep.sent, msg.sequence)
 
   //if this message has already been seen, ignore.
-  if(state.clock[msg.author] > msg.sequence) {
-    if (rep.rx) setNotes(peer, msg.author, state.clock[msg.author], false)
+  if(state.clock[msg.author] >= msg.sequence) {
+    if (rep.rx) {
+      setNotes(peer, msg.author, state.clock[msg.author], false)
+    }
       //XXX activate some other peer?
     return state
   }
 
   //remember the time of the last message received
   state.peers[ev.id].ts = ev.ts
-  state.receive.push(ev)
+
+  //FORKS ignore additional messages if we have already found an invalid one.
+  if(isShared(state, ev.value.author, ev.id))
+    state.receive.push(ev)
   //Q: possibly update the receiving mode?
 
   return state
@@ -449,4 +454,12 @@ return exports
 }
 
 
+/*
+  what does a fork proof look like?
+
+  usually, you have one message, and receive a subsequent message.
+  (n, n'+1), except that n'+1 does not extend n. but both have valid
+  signatures.
+
+*/
 
