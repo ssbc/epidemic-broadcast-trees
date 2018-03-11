@@ -56,15 +56,15 @@ module.exports = function (opts) {
       self.state = events.append(self.state, msg)
       self.update()
     },
-    _append: function (err, data) {
-      if(data) {
-        self.onAppend(data.value ? data.value : data)
-      }
-      else
-        //this definitely can happen.
-        //TODO: broadcast fork proofs
-        console.log('error appending:', err)
-    },
+//    _append: function (err, data, peer) {
+//      if(data) {
+//        self.onAppend(data.value ? data.value : data)
+//      }
+//      else
+//        //this definitely can happen.
+//        //TODO: broadcast fork proofs
+//        console.log('error appending:', err)
+//    },
     update: function () {
       //retrive next messages.
       //TODO: respond to back pressure from streams to each peer.
@@ -79,8 +79,11 @@ module.exports = function (opts) {
         }
       }
       if(this.state.receive.length) {
-        var msg = this.state.receive.shift()
-        opts.append(msg, this._append)
+        var ev = this.state.receive.shift()
+        opts.append(ev.value, function (err, data) {
+          if(err) self.block(ev.value.author, ev.id, true)
+          else self.onAppend(ev.value)
+        })
       }
       for(var k in this.streams)
         this.streams[k].resume()
