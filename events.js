@@ -44,7 +44,7 @@ function isAlreadyReplicating(state, feed_id, ignore_id) {
 
 function max (a, b) {
   if(a == null) return b
-  if(a == -1) return b
+  if(a == -1 || b == -1) return b
   return Math.max(a, b)
 }
 
@@ -290,7 +290,7 @@ exports.receive = function (state, ev) {
 
   //remember the time of the last message received
   state.peers[ev.id].ts = ev.ts
-  state.receive.push(msg)
+  state.receive.push(ev)
   //Q: possibly update the receiving mode?
 
   return state
