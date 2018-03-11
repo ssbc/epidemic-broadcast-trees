@@ -49,6 +49,9 @@ function createTest (seed, log) {
 
     t.deepEqual(bob.state.blocks, {alice: {alice: true}})
 
+    var prog = progress(bob.state)
+    t.equal(prog.current, prog.target)
+
 //    t.equal(bob.state.peers.alice.replicating.alice.tx, false, 'bob is not transmitting forked alice with alice')
     t.equal(bob.state.peers.alice.replicating.alice.rx, false, 'bob is not receiving forked alice with alice')
 
