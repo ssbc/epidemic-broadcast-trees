@@ -7,7 +7,7 @@ test('switch peers if timeout exceeded', function (t) {
     id: 'alice',
     clock: {bob: 5, charles: 6, dawn: 3},
     retrive: [],
-    follows: {bob: true},
+    follows: {bob: true}, blocks: {},
     timeout: 1000,
     peers: {
       bob: {
@@ -56,6 +56,7 @@ test('if up to latest message by peer, swich if another peer claims newer', func
     clock: {bob: 7, charles: 6, dawn: 3},
     retrive: [],
     follows: {bob: true},
+    blocks: {},
     timeout: 1000,
     peers: {
       bob: {
