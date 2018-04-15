@@ -92,7 +92,8 @@ opts = {
   getClock: function (id, cb),
   setClock: function (id, clock),
   getAt: function ({id:string, sequence:number}, cb),
-  append: function (msg, cb)
+  append: function (msg, cb),
+  isFeed: function (id),
 }
 ```
 
@@ -109,6 +110,9 @@ messages must have `{author, sequence, content}` fields.
 
 `timeout` is used to decide when to switch a feed to another peer.
 This is essential to detecting when a peer may have stalled.
+
+`isFeed(id)` is a validation function that returns true if `id`
+is a valid feed identifier. If not, it is ignored'
 
 ### ebt.onAppend (msg)
 
@@ -162,6 +166,9 @@ requests, and saves a lot of bandwidth compared to just requesting all feeds eac
 ## License
 
 MIT
+
+
+
 
 
 
