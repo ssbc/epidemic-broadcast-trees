@@ -6,6 +6,21 @@ function timestamp () {
   return Date.now()
 }
 
+function createValidate (isFeed) {
+  return function (clock) {
+    for(var k in clock) {
+      if(!isFeed(k)) {
+        var _clock = {}
+        for(var k in clock) {
+          if(isFeed(k)) _clock[k] = clock[k]
+        }
+        return _clock
+      }
+    }
+    return clock
+  }
+}
+
 module.exports = function (opts) {
   var state = events.initialize(opts.id, timestamp())
   state.timeout = opts.timeout || 3000
@@ -33,6 +48,10 @@ module.exports = function (opts) {
       var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
+
+      if(opts.isFeed)
+        stream._validate = createValidate(opts.isFeed)
+
       opts.getClock(remote_id, function (err, clock) {
         //check if peer exists in state, because we may
         //have disconect in the meantime

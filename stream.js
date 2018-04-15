@@ -116,6 +116,3 @@ EBTStream.prototype.pipe = require('push-stream/pipe')
 return EBTStream
 }
 
-
-
-
