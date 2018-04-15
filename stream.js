@@ -31,6 +31,10 @@ EBTStream.prototype.clock = function (clock) {
   if(this.source) this.source.resume()
 }
 
+EBTStream.prototype._validate = function (clock) {
+  return clock
+}
+
 EBTStream.prototype.write = function (data) {
   if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
   if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
@@ -38,6 +42,11 @@ EBTStream.prototype.write = function (data) {
     this.peer.state =
       events.receive(this.peer.state, {id: this.remote, value:data, ts: timestamp()})
   else {
+    if(data.clock)
+      data.clock = this._validate(data.clock)
+    else
+      data = this._validate(data)
+
     if(this.version === 2) {
       var _data = data; data = {}
       for(var k in _data) {
@@ -106,5 +115,7 @@ EBTStream.prototype.pipe = require('push-stream/pipe')
 
 return EBTStream
 }
+
+
 
 
