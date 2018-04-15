@@ -412,7 +412,7 @@ exports.timeout = function (state, ev) {
     var ignore_id = want[feed_id]
     eachFrom(peer_ids, ignore_id, function (peer_id) {
       var peer = state.peers[peer_id]
-      if(peer.clock[feed_id] || 0 > state.clock[feed_id] || 0) {
+      if(peer.clock && peer.clock[feed_id] || 0 > state.clock[feed_id] || 0) {
         peer.replicating = peer.replicating || {}
         var rep = peer.replicating[feed_id] = peer.replicating[feed_id] || {
           tx: false, rx: true, sent: -1, requested: state.clock[feed_id]
