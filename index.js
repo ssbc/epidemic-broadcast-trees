@@ -100,7 +100,10 @@ module.exports = function (opts) {
       if(this.state.receive.length) {
         var ev = this.state.receive.shift()
         opts.append(ev.value, function (err, data) {
-          if(err) self.block(ev.value.author, ev.id, true)
+          if(err) {
+            if(this.logging) console.error('EBT:err', err)
+            self.block(ev.value.author, ev.id, true)
+          }
           else self.onAppend(ev.value)
         })
       }
