@@ -1,7 +1,7 @@
 {
   "name": "epidemic-broadcast-trees",
   "description": "",
-  "version": "6.3.1",
+  "version": "6.3.2",
   "homepage": "https://github.com/dominictarr/epidemic-broadcast-trees",
   "repository": {
     "type": "git",
