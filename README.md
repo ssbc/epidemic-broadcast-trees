@@ -143,6 +143,43 @@ this follows a common pattern I've used across ssbc modules for representing pro
 used for example here: `https://github.com/ssbc/scuttlebot/blob/master/lib/progress.js`
 
 
+#### ebt.state
+
+The state of the replication is available at `ebt.state`.
+Read only access is okay, but updating should only be done via ebt methods.
+
+```
+{
+  id: <id>, //our id,
+  clock: {<id>: <seq>}, //our local clock,
+  follows: {<id>: <boolean>}, //who we replicate, true if we replicate.
+  blocks: {<id>: {<id>: <boolean>}}, //who blocks who, true if they are blocked.
+  peers: { //currently connected peers
+    <id>: {
+      clock: {<id>: <seq|-1>}, //feeds that we KNOW the peer is up to. -1 if they do not replicate that feed.
+      msgs: [<msg>], //queue of messages waiting to be sent.
+      retrive: [<seq>], //sequence numbers of messages to look up in our database.
+      notes: null || {<id>: <encoded_seq>}, //notes object (encoded vector clock to be sent)
+      replicating: { //feeds being replicated to peer.
+        <id>: {
+          rx: <boolean>,
+          tx: <boolean>,
+          sent: <seq|-1|null>, //sequence number of message we sent.
+          requested: <seq|-1|null> //sequence number we asked for.
+        }
+      }
+    }
+  },
+  receive: [<msg>] //queue of incoming messages
+}
+```
+
+notes: `<X>` is a value type.
+`<id>` is a "feed id" value that `opts.isFeed(id) === true`.
+(note, this doesn't actually need to be an ssb feed id, this module can be used for other things too)
+`<seq>` is an positive integer or zero. -1 is used to represent if the are explicitly not replicating that feed.
+`<msg>` is an object with at least `{author: <id>, sequence: <seq>, ...}` properties.
+
 ## comparison to plumtree
 
 I had an idea for a gossip protocol that avoided retransmitting messages by putting
@@ -166,6 +203,8 @@ requests, and saves a lot of bandwidth compared to just requesting all feeds eac
 ## License
 
 MIT
+
+
 
 
 
