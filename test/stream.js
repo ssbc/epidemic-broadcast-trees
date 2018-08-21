@@ -155,3 +155,28 @@ test('a3<->b3<->c2', function (t) {
 
 })
 
+test('a<-!>b', function (t) {
+  var alice = create('alice')
+  var bob = create('bob')
+
+  alice.request('alice', true)
+  alice.request('bob', true)
+  alice.block('alice', 'bob', true)
+  bob.request('alice', true)
+  bob.request('bob', true)
+
+  var as = alice.createStream('bob', 3, false)
+  var bs = bob.createStream('alice', 3, true)
+
+  console.log('initial.alice:',alice.progress())
+  console.log('initial.bob  :',bob.progress())
+
+  as.pipe(bs).pipe(as)
+
+  t.equal(as.ended, true)
+  t.equal(bs.ended, true)
+  t.end()
+})
+
+
+
