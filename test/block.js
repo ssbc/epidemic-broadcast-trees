@@ -26,7 +26,7 @@ test('blocks', function (t) {
   console.log(state)
   state = events.connect(state, {id: 'bob'})
 
-  t.deepEqual(state.peers, {})
+  t.equal(state.peers.bob.blocked, true)
 
   state = events.connect(state, {id: 'dawn', client: false})
 
@@ -50,5 +50,6 @@ test('blocks', function (t) {
   t.end()
 
 })
+
 
 
