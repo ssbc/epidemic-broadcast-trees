@@ -79,9 +79,10 @@ EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
 EBTStream.prototype.canSend = function () {
   var state = this.peer.state.peers[this.remote]
   return (
+    state &&
     this.sink &&
     !this.sink.paused && (
-      state.msgs.length || state.notes
+      (state.msgs && state.msgs.length) || state.notes
     )
   )
 }
