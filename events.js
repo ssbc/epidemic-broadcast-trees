@@ -106,9 +106,10 @@ exports.clock = function (state, clock) {
 
 exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
-  if(isBlocked(state, state.id, ev.id)) return state
+//  if(isBlocked(state, state.id, ev.id)) return state
 
   state.peers[ev.id] = {
+    blocked: isBlocked(state, state.id, ev.id),
     clock: null,
     client: !!ev.client,
     msgs: [],
@@ -428,6 +429,7 @@ exports.timeout = function (state, ev) {
 }
 
 exports.block = function (state, ev) {
+  //also, check wether we are currently connected to a blocked peer.
   if(!ev.value) {
     if(state.blocks[ev.id]) delete state.blocks[ev.id][ev.target]
     if(isEmpty(state.blocks[ev.id]))
@@ -436,6 +438,11 @@ exports.block = function (state, ev) {
   else {
     state.blocks[ev.id] = state.blocks[ev.id] || {}
     state.blocks[ev.id][ev.target] = true
+  }
+
+  if(state.peers[ev.target]) {
+    //end replication immediately.
+    state.peers[ev.target].blocked = ev.value
   }
 
   for(var id in state.peers) {
@@ -462,4 +469,6 @@ return exports
   signatures.
 
 */
+
+
 
