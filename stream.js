@@ -80,8 +80,11 @@ EBTStream.prototype.canSend = function () {
   var state = this.peer.state.peers[this.remote]
   return (
     this.sink &&
-    !this.sink.paused && (
-      state.msgs.length || state.notes
+    !this.sink.paused &&
+    !this.ended && (
+      //missing state means this peer was blocked,
+      //end immediately.
+      state.blocked || state.msgs.length || state.notes
     )
   )
 }
@@ -90,7 +93,9 @@ EBTStream.prototype.resume = function () {
   var state = this.peer.state.peers[this.remote]
   if(!this.sink || this.sink.paused) return
   while(this.canSend()) {
-    if(state.msgs.length) {
+    if(state.blocked)
+      this.end()
+    else if(state.msgs.length) {
       if(this.peer.logging) console.error("EBT:send", JSON.stringify(state.msgs[0], null, 2))
       this.sink.write(state.msgs.shift())
     }
@@ -115,4 +120,5 @@ EBTStream.prototype.pipe = require('push-stream/pipe')
 
 return EBTStream
 }
+
 
