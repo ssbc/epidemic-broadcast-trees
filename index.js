@@ -34,7 +34,12 @@ module.exports = function (opts) {
       return progress(state)
     },
     request: function (id, follows) {
+      if(opts.isFeed && !opts.isFeed(id)) return
       self.state = events.follow(self.state, {id: id, value: follows !== false, ts: timestamp()})
+      self.update()
+    },
+    pause: function (id, paused) {
+      self.state = events.pause(self.state, {id: id, paused: paused !== false})
       self.update()
     },
     block: function (id, target, value) {
