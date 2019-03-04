@@ -26,6 +26,8 @@ tape('v3 can handle fork and block', function (t) {
   t.equal(v3.getReplicate(-1), false)
   t.equal(v3.getReplicate(-2), false)
 
+  t.equal(v3.getSequence(-2), -2)
+
   t.end()
 })
 
