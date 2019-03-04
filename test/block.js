@@ -52,4 +52,44 @@ test('blocks', function (t) {
 })
 
 
+test("don't send retrived message to blocked peer", function (t) {
+  var state = events.initialize('alice')
+  state.clock = {alice: 3, charles: 2}
+//  state.block = {charles: {bob: true}} //charles blocks bob
+  state = events.block(state, {id: 'charles', target: 'bob', value: true})
+  state = events.connect(state, {id: 'bob', ts: 1})
+  console.log(state)
+  state = events.peerClock(state, {id: 'bob', value: {}})
+  state = events.notes(state, {id: 'bob', value: {charles: 1}})
+  t.equal(state.peers.bob.replicating.charles.tx, false)
+  t.equal(state.peers.bob.replicating.charles.sent, -1)
+  console.log('state', JSON.stringify(state, null, 2))
+
+  //it's already in a state that the peer should be blocked.
+
+  t.end()
+})
+
+test("don't send retrived message to blocked peer", function (t) {
+  var state = events.initialize('alice')
+  state.clock = {alice: 3, charles: 2}
+  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.peerClock(state, {id: 'bob', value: {}})
+
+  state = events.notes(state, {id: 'bob', value: {charles: 1}})
+  state = events.block(state, {id: 'charles', target: 'bob', value: true})
+
+  t.equal(state.peers.bob.replicating.charles.tx, false)
+  t.equal(state.peers.bob.replicating.charles.sent, -1)
+
+  t.end()
+})
+
+
+
+
+
+
+
+
 
