@@ -44,7 +44,8 @@ function isAlreadyReplicating(state, feed_id, ignore_id) {
 
 function max (a, b) {
   if(a == null) return b
-  if(a == -1 || b == -1) return b
+  if(a == -1 || b == -1) return -1
+  if(a == -2 || b == -2) return -2
   return Math.max(a, b)
 }
 
@@ -65,7 +66,7 @@ function isAvailable(state, feed_id, ignore_id) {
 //jump to a particular key in a list, then iterate from there
 //back around to the key. this is used for switching away from
 //peers that stall so that you'll rotate through all the peers
-//not just swich between two different peers.
+//not just switch between two different peers.
 
 function eachFrom(keys, key, iter) {
   var i = keys.indexOf(key)
@@ -99,11 +100,14 @@ exports.initialize = function (id) {
   }
 }
 
+//when our own clock is loaded.
 exports.clock = function (state, clock) {
   state.clock = clock
   return state
 }
 
+//when we connect to another peer.
+//next step is load their clock (if we have one stored for them)
 exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
 //  if(isBlocked(state, state.id, ev.id)) return state
@@ -149,8 +153,10 @@ exports.peerClock = function (state, ev) {
 
   for(var id in state.follows) {
     var seq = clock[id], lseq = state.clock[id] || 0
-    //BLOCK: check wether id has blocked this peer
-    if(isShared(state, id, ev.id) && seq !== -1 && seq !== lseq) {
+    //BLOCK: check wether id has blocked this peer, or if they think this peer has forked.
+    if(isShared(state, id, ev.id) && (
+      (seq || 0) >= 0 //if feed is not blocked or forked
+    ) && seq !== lseq) {
 
       //if we are already replicating, and this feed is at zero, ask for it anyway,
       //XXX if a feed is at zero, but we are replicating on another peer
@@ -167,12 +173,16 @@ exports.peerClock = function (state, ev) {
   return state
 }
 
-//XXX handle replicating with only one peer.
 exports.follow = function (state, ev) {
+
   //set to true once we have asked for this feed from someone.
+  //once we ask for it from one peer, we'll tell the next peers we want it,
+  //but not to send it to us.
   var replicating = false
+
   if(!!state.follows[ev.id] !== ev.value) {
     state.follows[ev.id] = ev.value
+
     for(var id in state.peers) {
       var peer = state.peers[id]
       if(!peer.clock || !peer.replicating || !isShared(state, ev.id, id)) continue
@@ -209,10 +219,10 @@ exports.retrive = function (state, msg) {
   for(var id in state.peers) {
     var peer = state.peers[id]
     if(!peer.replicating) continue;
-    //BLOCK: check wether id has blocked this peer
     var rep = peer.replicating[msg.author]
 
-    if(rep && rep.tx && rep.sent === msg.sequence - 1) {
+    //isShared check might not be necessary here, but double check it.
+    if(rep && rep.tx && rep.sent === msg.sequence - 1 && isShared(state, msg.author, id)) {
       rep.sent ++
       peer.msgs.push(msg)
       if(rep.sent < state.clock[msg.author]) {
@@ -226,9 +236,10 @@ exports.retrive = function (state, msg) {
 }
 
 function isAhead(seq1, seq2) {
-  if(seq2 === -1) return false
+  if(seq2 === -1)  return false
+  if(seq2 === -2)  return false
   if(seq2 == null) return true
-  if(seq1 > seq2) return true
+  if(seq1 > seq2)  return true
 }
 
 exports.append = function (state, msg) {
@@ -328,7 +339,8 @@ exports.notes = function (state, ev) {
   for(var id in clock) {
     count ++
 
-    var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
+    // XXX HANDLE FORK
+    var seq = peer.clock[id] = /*clock[id] === -2 ? -2 : */max(peer.clock[id], getSequence(clock[id]))
     var tx = getReceive(clock[id]) //seq >= 0
     var isReplicate = getReplicate(clock[id])// !== -1
 
@@ -456,19 +468,75 @@ exports.block = function (state, ev) {
 
 }
 
-return exports
-
+//set pausing and unpausing a feed.
+exports.pause = function (state, ev) {
+  if(state.peers[ev.id] && state.clock[ev.id] >= 0)
+    setNotes(state.peers[ev.id], ev.id, state.clock[ev.id], !!ev.value)
+  return state
 }
 
 
 /*
-  what does a fork proof look like?
+  What does a fork proof look like?
 
   usually, you have one message, and receive a subsequent message.
   (n, n'+1), except that n'+1 does not extend n. but both have valid
   signatures.
 
+  how does a fork work?
+
+  If a feed forks, call ebt.fork(msg1, msg2)
+  which creates a fork proof.
+  send a clock: -2 for that feed, and if they
+  request any messages, send the fork proof.
+  if you receive a valid fork proof, set -2.
+
 */
+
+//the event is called when the fork is already validated.
+exports.fork = function (state, ev) {
+  state.forked = state.forked || {}
+  //mark the forked feed as forked.
+  var fork_id = ev.value[0].author
+  if(state.forked[fork_id]) //already forked
+    return state
+
+  state.forked[fork_id] = ev.value
+
+  //mark that this peer sent us a fork proof.
+  if(state.peers[ev.id] && state.peers[ev.id].replicating[fork_id]) {
+    state.peers[ev.id].replicating[fork_id].rx =
+    state.peers[ev.id].replicating[fork_id].tx = false
+  }
+
+  //if there were any messages to send or be retrived, for this feed,
+  //cancel that now.
+  /*
+  for(var id in state.peers) {
+    var peer = state.peers[id]
+    //except for the peer we received this message from, or peers that already know about the fork.
+    if(id != ev.id) {
+      if(peer.replicating[fork_id] && (
+        peer.replicating[fork_id].sent >= 0
+      || peer.replicating[fork_id].requested == -2
+      )) {
+        //if we havn't already sent a fork proof
+        //queue the fork proof.
+        peer.replicating[fork_id].sent = -2
+        peer.msgs.push(ev.value) //xxx
+      }
+    }
+  }
+  */
+
+  return state
+}
+
+
+return exports
+
+}
+
 
 
 
