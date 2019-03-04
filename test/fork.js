@@ -1,75 +1,201 @@
-var createSimulator = require('./simulator')
-var options = require('./options')
-var progress = require('../progress')
-
+var events = require('../events')(require('./options'))
 var test = require('tape')
 
-function validate (queue, msg) {
-  var sum = queue.reduce(function (a, b) {
-    return a + b.content.value
-  }, 0)
-  if(sum != msg.content.sum) throw new Error('invalid sum:'+msg.content.sum+', expected:'+sum)
-}
+var note = events.note
 
-function createTest (seed, log) {
-  test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log, options)
+test('test if receive fork in clock', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
 
-    var network = {}
-    var alice = network['alice'] = tick.createPeer('alice', validate)
-    var bob = network['bob'] = tick.createPeer('bob', validate)
-  //  var charles = network['charles'] = tick.createPeer('charles', validate)
-
-    alice.init({})
-    bob.init({})
-//    charles.init({})
-
-    alice.append({author: 'alice', sequence: 1, content: {sum:  0, value: 1}})
-    alice.append({author: 'alice', sequence: 2, content: {sum:  1, value: 2}})
-    alice.append({author: 'alice', sequence: 3, content: {sum:  3, value: 3}})
-    alice.append({author: 'alice', sequence: 4, content: {sum:  6, value: 4}})
-    alice.append({author: 'alice', sequence: 5, content: {sum: 10, value: 5}})
-    alice.append({author: 'alice', sequence: 6, content: {sum: 15, value: 6}})
-    alice.append({author: 'alice', sequence: 7, content: {sum: 21, value: 7}})
-
-    bob.append({author: 'alice', sequence: 1, content: {sum: 0, value: 1}})
-    bob.append({author: 'alice', sequence: 2, content: {sum: 1, value: 3}})
-//    bob.append({author: 'alice', sequence: 3, content: {sum: 4, value: 1}})
-
-    alice.follow('alice')
-    bob.follow('alice')
-  //  charles.follow('alice')
-
-    alice.connect(bob)
-//    alice.connect(charles)
-
-    while(tick(network)) ;
-
-    //should have set up peer.replicatings to tx/rx alice
-
-    t.deepEqual(bob.state.blocks, {alice: {alice: true}})
-
-    var prog = progress(bob.state)
-    t.equal(prog.current, prog.target)
-
-//    t.equal(bob.state.peers.alice.replicating.alice.tx, false, 'bob is not transmitting forked alice with alice')
-    t.equal(bob.state.peers.alice.replicating.alice.rx, false, 'bob is not receiving forked alice with alice')
-
-    if(log)
-      console.log(
-        tick.output.map(function (e) {
-          if(e.msg)
-            return e.from+'>'+e.to+':'+e.value.sequence
-          else
-            return e.from+'>'+e.to+':'+JSON.stringify(e.value)
-        }).join('\n')
-      )
-
-    t.end()
+  state = events.connect(state, {id: 'bob', ts: 1})
+  /*
+    loads a stored peer clock where remote still wants bob.
+  */
+  state = events.peerClock(state, {
+    id: 'bob',
+    value: {
+      alice: note(0, true),
+      bob: note(1, true)
+    }
   })
-}
 
-var seed = process.argv[2]
-if(isNaN(seed)) for(var i = 0; i < 100; i++) createTest(i)
-else createTest(+seed, true)
+  state = events.notes(state, {
+    id: 'bob',
+    value: {
+      alice: -2
+    }
+  })
+
+  console.log(JSON.stringify(state, null, 2))
+
+  t.equal(state.peers.bob.clock.alice, -2)
+  t.equal(state.peers.bob.replicating.alice.requested, 3)
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+  t.equal(state.peers.bob.replicating.alice.rx, true)
+
+  state = events.fork(state, {id: 'bob', value: [{author: 'alice'}]})
+
+  t.ok(state.forked.alice)
+//  t.equal(state.clock.alice, -2)
+  //would transmit the fork to any other peers, if were connected
+
+  t.equal(state.peers.bob.replicating.alice.rx, false)
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+
+//  state = events.connect(state, {id: 'charles', ts: 2})
+
+  t.end()
+})
+
+//Test if receive fork proof while expecting messages
+//test if receive fork while connected to other peers (broadcast to them)
+//test if receive request note while already know a fork (let them know it's forked)
+
+test('test if receive fork proof while receiving messages', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  state = events.connect(state, {id: 'bob', ts: 1})
+  /*
+    loads a stored peer clock where remote still wants bob.
+  */
+  state = events.peerClock(state, {
+    id: 'bob',
+    value: {
+      alice: note(0, true),
+      bob: note(1, true)
+    }
+  })
+
+  state = events.notes(state, {
+    id: 'bob',
+    value: {
+      alice: note(2, true)
+    }
+  })
+
+  t.equal(state.peers.bob.clock.alice, 2)
+  t.equal(state.peers.bob.replicating.alice.requested, 3)
+  t.equal(state.peers.bob.replicating.alice.tx, true)
+  t.equal(state.peers.bob.replicating.alice.rx, true)
+
+  var fork_proof = [{author: 'alice'}]
+  //if we received the fork from bob, then we wouldn't send it back.
+  //so say we received it from charles
+  state = events.fork(state, {id: 'charles', value: fork_proof})
+
+  t.ok(state.forked.alice)
+  t.deepEqual(state.peers.bob.msgs, [fork_proof])
+  t.equal(state.peers.bob.notes && state.peers.bob.notes.alice, undefined)
+  //would transmit the fork to any other peers, if were connected
+
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+  t.equal(state.peers.bob.replicating.alice.rx, false)
+
+  t.end()
+})
+
+test('test if receive fork proof while receiving messages', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.connect(state, {id: 'charles', ts: 1})
+  /*
+    loads a stored peer clock where remote still wants bob.
+  */
+  state = events.peerClock(state, {
+    id: 'bob',
+    value: {
+      alice: note(0, true),
+      bob: note(1, true)
+    }
+  })
+
+  state = events.notes(state, {
+    id: 'bob',
+    value: {
+      alice: note(2, true)
+    }
+  })
+
+  t.equal(state.peers.bob.clock.alice, 2)
+  t.equal(state.peers.bob.replicating.alice.requested, 3)
+  t.equal(state.peers.bob.replicating.alice.tx, true)
+  t.equal(state.peers.bob.replicating.alice.rx, true)
+
+  var fork_proof = [{author: 'alice'}]
+  //if we received the fork from bob, then we wouldn't send it back.
+  //so say we received it from charles
+  state = events.fork(state, {id: 'bob', value: fork_proof})
+
+  t.ok(state.forked.alice)
+  t.deepEqual(state.peers.bob.msgs, [])
+  t.equal(state.peers.bob.notes && state.peers.bob.notes.alice, undefined)
+  //would transmit the fork to any other peers, if were connected
+
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+  t.equal(state.peers.bob.replicating.alice.rx, false)
+
+  t.end()
+})
+
+test('test if we know fork proof, then someone asks for it', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  var fork_proof = [{author: 'alice'}]
+  //if we received the fork from bob, then we wouldn't send it back.
+  //so say we received it from charles
+  state = events.fork(state, {id: 'charles', value: fork_proof})
+  t.ok(state.forked.alice)
+
+  state = events.connect(state, {id: 'bob', ts: 1})
+  /*
+    loads a stored peer clock where remote still wants bob.
+  */
+  state = events.peerClock(state, {
+    id: 'bob',
+    value: {}
+  })
+  t.deepEqual(state.peers.bob.notes, {alice: -2, bob: note(2, true)})
+
+  state = events.notes(state, {
+    id: 'bob',
+    value: { alice: note(2, true) } //bob asks for alice, but she has forked!
+  })
+
+  t.deepEqual(state.peers.bob.msgs, [fork_proof])
+
+//  t.equal(state.peers.bob.clock.alice, 2)
+//  t.equal(state.peers.bob.replicating.alice.requested, 3)
+//  t.equal(state.peers.bob.replicating.alice.tx, true)
+//  t.equal(state.peers.bob.replicating.alice.rx, true)
+
+
+//  t.deepEqual(state.peers.bob.msgs, [fork_proof])
+//  t.equal(state.peers.bob.notes && state.peers.bob.notes.alice, undefined)
+//  //would transmit the fork to any other peers, if were connected
+//
+//  t.equal(state.peers.bob.replicating.alice.tx, false)
+//  t.equal(state.peers.bob.replicating.alice.rx, false)
+
+  t.end()
+})
 
