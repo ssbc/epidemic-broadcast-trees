@@ -446,6 +446,57 @@ test('test if timeout happens while loading', function (t) {
 })
 
 
+test('test if receive fork in clock', function (t) {
+  var state = {
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  state = events.connect(state, {id: 'bob', ts: 1})
+  /*
+    loads a stored peer clock where remote still wants bob.
+  */
+  state = events.peerClock(state, {
+    id: 'bob',
+    value: {
+      alice: note(0, true),
+      bob: note(1, true)
+    }
+  })
+
+  state = events.notes(state, {
+    id: 'bob',
+    value: {
+      alice: -2
+    }
+  })
+
+  console.log(JSON.stringify(state, null, 2))
+
+  t.equal(state.peers.bob.clock.alice, -2)
+  t.equal(state.peers.bob.replicating.alice.requested, 3)
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+  t.equal(state.peers.bob.replicating.alice.rx, true)
+
+  state = events.fork(state, {id: 'bob', value: [{author: 'alice'}]})
+
+  t.ok(state.forked.alice)
+//  t.equal(state.clock.alice, -2)
+  //would transmit the fork to any other peers, if were connected
+
+  t.equal(state.peers.bob.replicating.alice.rx, false)
+  t.equal(state.peers.bob.replicating.alice.tx, false)
+
+//  state = events.connect(state, {id: 'charles', ts: 2})
+
+  t.end()
+})
+
+//Test if receive fork proof while expecting messages
+//test if receive fork while connected to other peers (broadcast to them)
+//test if receive request note while already know a fork (let them know it's forked)
 
 }
 

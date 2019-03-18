@@ -71,6 +71,7 @@ test("don't send retrived message to blocked peer", function (t) {
 })
 
 test("don't send retrived message to blocked peer", function (t) {
+  
   var state = events.initialize('alice')
   state.clock = {alice: 3, charles: 2}
   state = events.connect(state, {id: 'bob', ts: 1})
@@ -84,6 +85,7 @@ test("don't send retrived message to blocked peer", function (t) {
 
   t.end()
 })
+
 
 
 

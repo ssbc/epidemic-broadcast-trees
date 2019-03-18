@@ -32,5 +32,3 @@ test('client does not send {} until received it, but will send empty note, one t
 })
 
 
-
-
