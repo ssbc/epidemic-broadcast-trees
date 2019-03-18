@@ -41,6 +41,8 @@ EBTStream.prototype.write = function (data) {
   if(isMsg(data))
     this.peer.state =
       events.receive(this.peer.state, {id: this.remote, value:data, ts: timestamp()})
+//  else if (isForkProof(data) && this._isValidFork(data))
+//    this.peer.state = events.fork(this.peer.state, {id: this.remote, fork: data})
   else {
     if(data.clock)
       data.clock = this._validate(data.clock)
