@@ -24,7 +24,7 @@ test('blocks', function (t) {
   state = events.block(state, {id: 'alice', target: 'bob', value: true})
   state = events.block(state, {id: 'charles', target: 'dawn', value: true})
   console.log(state)
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
 
   t.equal(state.peers.bob.blocked, true)
 
@@ -57,7 +57,7 @@ test("don't send retrived message to blocked peer", function (t) {
   state.clock = {alice: 3, charles: 2}
 //  state.block = {charles: {bob: true}} //charles blocks bob
   state = events.block(state, {id: 'charles', target: 'bob', value: true})
-  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.connect(state, {id: 'bob', ts: 1, client: false})
   console.log(state)
   state = events.peerClock(state, {id: 'bob', value: {}})
   state = events.notes(state, {id: 'bob', value: {charles: 1}})
@@ -74,7 +74,7 @@ test("don't send retrived message to blocked peer", function (t) {
   
   var state = events.initialize('alice')
   state.clock = {alice: 3, charles: 2}
-  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.connect(state, {id: 'bob', ts: 1, client: false})
   state = events.peerClock(state, {id: 'bob', value: {}})
 
   state = events.notes(state, {id: 'bob', value: {charles: 1}})

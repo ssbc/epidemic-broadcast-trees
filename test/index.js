@@ -34,7 +34,7 @@ test('initialize, connect to new peer', function (t) {
 
   var state = events.initialize()
 
-  state = events.connect(state, {id: 'alice'})
+  state = events.connect(state, {id: 'alice', client: false})
   state = events.peerClock(state, {id: 'alice', value: {}})
 
   has(t, state, {
@@ -124,7 +124,7 @@ test('initialize, but append before peerClock loads', function (t) {
   var state = events.initialize()
   state = events.clock(state, {alice: 1, bob: 2})
 
-  state = events.connect(state, {id: 'alice'})
+  state = events.connect(state, {id: 'alice', client: false})
   state = events.append(state, {author: 'bob', sequence: 3, content: {}})
 
   state = events.peerClock(state, {id: 'alice', value: {}})
@@ -200,7 +200,7 @@ test('reply to any clock they send, 1', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
   t.deepEqual(state.peers.bob.notes, {bob: note(2, true), charles: note(3, true)})
 
@@ -219,7 +219,7 @@ test('reply to any clock they send, 2', function (t) {
     peers: {},
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
   t.deepEqual(state.peers.bob.notes, {bob: note(2, true)})
 
@@ -240,7 +240,7 @@ test('append when not in TX mode', function (t) {
     follows: { alice: true, bob: true}, blocks: {},
     peers: {}
   }
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, charles: 1}})
   t.deepEqual(state.peers.bob.notes, {bob: note(2, true)})
 
@@ -304,7 +304,7 @@ test('note when value is not integer', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{}})
 
   t.deepEqual(state.peers.bob.clock, {})
@@ -323,7 +323,7 @@ test('test sends empty clock if nothing needed', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, bob: 2}})
 
   t.deepEqual(state.peers.bob.clock, {alice: 3, bob: 2})
@@ -344,7 +344,7 @@ test('connects in sync then another message', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: 3, bob: 2}})
 
   t.deepEqual(state.peers.bob.clock, {alice: 3, bob: 2})
@@ -368,7 +368,7 @@ test('unfollow', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{}})
 
   t.deepEqual(state.peers.bob.clock, {})
@@ -400,7 +400,7 @@ test('remember clock of unfollow', function (t) {
     peers: {}
   }
 
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: -1}})
 
   t.deepEqual(state.peers.bob.clock, {alice: -1})
@@ -415,7 +415,7 @@ test('notes can be passed inside {clock:{}} object', function (t) {
     follows: {alice: true}, blocks: {},
     peers: {}
   }
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: -1}})
 
   state = events.notes(state, {id: 'bob', value: {
@@ -435,10 +435,10 @@ test('test if timeout happens while loading', function (t) {
     timeout: 1
   }
 
-  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.connect(state, {id: 'bob', ts: 1, client: false})
   state = events.peerClock(state, {id: 'bob', value:{alice: note(0, true), bob: note(0, true)}})
 
-  state = events.connect(state, {id: 'charles', ts: 2})
+  state = events.connect(state, {id: 'charles', ts: 2, client: false})
   console.log(state)
   state = events.timeout(state, {ts: 4})
 
@@ -454,7 +454,7 @@ test('test if receive fork in clock', function (t) {
     timeout: 1
   }
 
-  state = events.connect(state, {id: 'bob', ts: 1})
+  state = events.connect(state, {id: 'bob', ts: 1, client: false})
   /*
     loads a stored peer clock where remote still wants bob.
   */
