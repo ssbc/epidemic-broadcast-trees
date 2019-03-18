@@ -13,9 +13,9 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
   }
   state = events.clock(state, {alice: 3, bob: 2, charles: 5})
   
-  state = events.connect(state, {id: 'bob'})
+  state = events.connect(state, {id: 'bob', client: false})
   state = events.peerClock(state, {id: 'bob', value: {alice: 2, bob: 2, charles: 5}})
-  state = events.connect(state, {id: 'charles', value: {alice: 2, bob: 2, charles: 5}})
+  state = events.connect(state, {id: 'charles', client: false})
   state = events.peerClock(state, {id: 'charles', value: {alice: 2, bob: 2, charles: 5}})
 
   console.log(state.peers)

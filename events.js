@@ -106,6 +106,8 @@ exports.clock = function (state, clock) {
 
 exports.connect = function (state, ev) {
   if(state.peers[ev.id]) throw new Error('already connected to peer:'+ev.id)
+  if(typeof ev.client != 'boolean') throw new Error('connect.client must be boolean')
+
 //  if(isBlocked(state, state.id, ev.id)) return state
 
   state.peers[ev.id] = {
