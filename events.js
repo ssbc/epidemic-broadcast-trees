@@ -30,6 +30,10 @@ function isShared (state, id, peer_id) {
   return state.follows[id] && !isBlocked(state, id, peer_id)
 }
 
+function isForked (state, id) {
+  return state.forked && state.forked[id]
+}
+
 //check if a feed is already being replicated on another peer from ignore_id
 function isAlreadyReplicating(state, feed_id, ignore_id) {
   for(var id in state.peers) {
@@ -157,16 +161,20 @@ exports.peerClock = function (state, ev) {
     if(isShared(state, id, ev.id) && (
       (seq || 0) >= 0 //if feed is not blocked or forked
     ) && seq !== lseq) {
-
-      //if we are already replicating, and this feed is at zero, ask for it anyway,
-      //XXX if a feed is at zero, but we are replicating on another peer
-      //just don't ask for it yet?
-      var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
-      peer.replicating = peer.replicating || {}
-      var rep = peer.replicating[id] = {
-        tx: false, rx: !replicating, sent: null, requested: state.clock[id]
+      if(isForked(state, id)) {
+        peer.notes[id] = -2
       }
-      setNotes(peer, id, state.clock[id] || 0, !replicating)
+      else {
+        //if we are already replicating, and this feed is at zero, ask for it anyway,
+        //XXX if a feed is at zero, but we are replicating on another peer
+        //just don't ask for it yet?
+        var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
+        peer.replicating = peer.replicating || {}
+        var rep = peer.replicating[id] = {
+          tx: false, rx: !replicating, sent: null, requested: state.clock[id]
+        }
+        setNotes(peer, id, state.clock[id] || 0, !replicating)
+      }
     }
   }
 
@@ -340,7 +348,17 @@ exports.notes = function (state, ev) {
     count ++
 
     // XXX HANDLE FORK
-    var seq = peer.clock[id] = /*clock[id] === -2 ? -2 : */max(peer.clock[id], getSequence(clock[id]))
+    
+    var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
+    if(seq != -2 && isForked(state, id)) {
+      peer.replicating[id] = peer.replicating[id] || {tx: false, rx: false, sent: 0, requested: seq}
+      if(peer.replicating[id].sent !== -2) {
+        peer.msgs.push(state.forked[id])
+        peer.replicating[id].sent = -2
+      }
+      continue;
+    }
+
     var tx = getReceive(clock[id]) //seq >= 0
     var isReplicate = getReplicate(clock[id])// !== -1
 
@@ -511,10 +529,15 @@ exports.fork = function (state, ev) {
 
   //if there were any messages to send or be retrived, for this feed,
   //cancel that now.
-  /*
+
   for(var id in state.peers) {
     var peer = state.peers[id]
     //except for the peer we received this message from, or peers that already know about the fork.
+    if(peer.notes && peer.notes[fork_id]) {
+      delete peer.notes[fork_id]
+      if(isEmpty(peer.notes)) delete peer.notes
+    }
+
     if(id != ev.id) {
       if(peer.replicating[fork_id] && (
         peer.replicating[fork_id].sent >= 0
@@ -523,11 +546,11 @@ exports.fork = function (state, ev) {
         //if we havn't already sent a fork proof
         //queue the fork proof.
         peer.replicating[fork_id].sent = -2
+        peer.replicating[fork_id].rx = peer.replicating[fork_id].tx = false
         peer.msgs.push(ev.value) //xxx
       }
     }
   }
-  */
 
   return state
 }
@@ -536,7 +559,4 @@ exports.fork = function (state, ev) {
 return exports
 
 }
-
-
-
 
