@@ -117,6 +117,9 @@ exports.connect = function (state, ev) {
     msgs: [],
     retrive: [],
     notes: null,
+    //if we are client, wait until we receive notes to send code.
+    //this is a weird way of doing it! shouldn't we just have a bit of state
+    //for wether we have received a vector clock
     replicating: ev.client ? null : {}
   }
 
