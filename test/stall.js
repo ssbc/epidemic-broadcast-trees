@@ -1,16 +1,6 @@
-
 var createSimulator = require('./simulator')
-var _events = require('../events')()
+var events = require('../events')()
 var test = require('tape')
-
-var events = {}
-for(var k in _events) (function (fn, k) {
-  events[k] = function (state, ev) {
-    if(state.stalled) return state
-    return fn(state, ev)
-  }
-})(_events[k], k)
-
 
 function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
@@ -53,15 +43,19 @@ function createTest (seed, log) {
     alice.connect(bob)
     dawn.connect(bob)
 
+    //iterate while dawn and carl are behind...
     while((
       (!dawn.store.alice || dawn.store.alice.length < 2)
-//      &&
-//      (!bob.store.alice || bob.store.alice.length < 2)
+      && (!carl.store.alice || carl.store.alice.length < 2)
     ) && tick(network))
       ;
 
-
+    //carl stalls, but the rest of the peers
+    //contiue functioning correctly.
+    //this lets us check the network continues
+    //to work even if some peers stop.
     carl.state.stalled = true
+
 //    bob.state.peers.alice.replicating.alice.rx = false
 //    dawn.state.peers.bob.replicating.alice.rx = false
 //    bob.state.peers.carl.replicating.alice.rx = true
@@ -88,6 +82,7 @@ function createTest (seed, log) {
 
     t.deepEqual(dawn.store, alice.store, 'dawn matches alice')
     t.deepEqual(bob.store, alice.store, 'bob matches alice')
+    t.notDeepEqual(carl.store, alice.store, 'carl has stalled, does not match alice')
 
     t.end()
   })
@@ -97,6 +92,10 @@ var seed = process.argv[2]
 if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
+
+
+
 
 
 
