@@ -1,7 +1,7 @@
 
 var test = require('tape')
 
-var events = require('../events')(require('./options'))
+var events = require('../events')()
 
 var note = events.note
 

@@ -50,6 +50,5 @@ test('if connects to multiple peers, should replicate a feed from only one', fun
 }
 
 if(!module.parent)
-  module.exports(require('./options'))
-
+  module.exports(require('../events')())
 

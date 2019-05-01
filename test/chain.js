@@ -1,6 +1,6 @@
 
 var createSimulator = require('./simulator')
-var options = require('./options')
+var options = require('../events')()
 var progress = require('../progress')
 
 var test = require('tape')

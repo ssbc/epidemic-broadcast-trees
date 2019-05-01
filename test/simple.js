@@ -1,12 +1,11 @@
 
 var createSimulator = require('./simulator')
-var options = require('./options')
 
 var test = require('tape')
 
 function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log, options)
+    var tick = createSimulator(seed, log)
 
     var network = {}
     var alice = network['alice'] = tick.createPeer('alice')
@@ -39,6 +38,7 @@ if(isNaN(seed))
     createTest(i)
 else
   createTest(+seed, true)
+
 
 
 

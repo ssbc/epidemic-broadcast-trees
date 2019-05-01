@@ -1,5 +1,4 @@
 var createSimulator = require('./simulator')
-var options = require('./options')
 var progress = require('../progress')
 
 var test = require('tape')
@@ -13,7 +12,7 @@ function validate (queue, msg) {
 
 function createTest (seed, log) {
   test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log, options)
+    var tick = createSimulator(seed, log)
 
     var network = {}
     var alice = network['alice'] = tick.createPeer('alice', validate)
@@ -72,4 +71,5 @@ function createTest (seed, log) {
 var seed = process.argv[2]
 if(isNaN(seed)) for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
+
 

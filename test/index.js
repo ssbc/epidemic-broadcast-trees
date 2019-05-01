@@ -450,8 +450,5 @@ test('test if timeout happens while loading', function (t) {
 }
 
 if(!module.parent)
-  module.exports(require('./options'))
-
-
-
+  module.exports(require('../events')())
 

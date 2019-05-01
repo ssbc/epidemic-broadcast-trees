@@ -1,6 +1,6 @@
 
 var test = require('tape')
-var events = require('../events')(require('./options'))
+var events = require('../events')()
 
 test('switch peers if timeout exceeded', function (t) {
   var state = {
@@ -100,5 +100,4 @@ test('if up to latest message by peer, swich if another peer claims newer', func
   t.end()
 
 })
-
 

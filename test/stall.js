@@ -1,6 +1,6 @@
 
 var createSimulator = require('./simulator')
-var _events = require('../events')(require('./options'))
+var _events = require('../events')()
 var test = require('tape')
 
 var events = {}
