@@ -151,7 +151,7 @@ exports.peerClock = function (state, ev) {
   //always set an empty clock here, so that if we don't have anything
   //to send, we still send this empty clock. This only happens on a new connection.
   //in every other situation, clock is only sent if there is something in it.
-  peer.notes = peer.notes || {}
+  peer.notes = {}
 
   //iterate over following and create replications.
   //if we want to replicate a peer that has changed since their clock,
@@ -170,10 +170,7 @@ exports.peerClock = function (state, ev) {
       var rep = peer.replicating[id] = {
         tx: false, rx: !replicating, sent: null, requested: state.clock[id]
       }
-//      console.log('NOTE', id, peer.notes[id], !replicating)
-      console.log('?NOTE', id, peer.notes[id], !replicating, state.clock[id] || 0, opts.note(state.clock[id] || 0, !replicating))
       setNotes(peer, id, state.clock[id] || 0, !replicating)
-      console.log('!NOTE', id, peer.notes[id], !replicating, state.clock[id] || 0)
     }
   }
 
@@ -482,4 +479,7 @@ return exports
   signatures.
 
 */
+
+
+
 
