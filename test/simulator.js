@@ -7,21 +7,10 @@ var log
 
 module.exports = function (seed, _log, _events) {
 
-if(!_events) _events = require('../events')(require('../v3'))
-_events = require('../conditions')(_events)
+var events = require('../conditions')(_events || require('../events')())
 
 log = _log
 var rng = new RNG.MT(seed || 0)
-
-var events = {}
-
-for(var k in _events) (function (fn, k) {
-  events[k] = function (state, value) {
-    if(log) console.log(k.toUpperCase()+'('+state.id+')', value)
-    return fn(state, value)
-  }
-})(_events[k],k)
-
 
 var output = []
 var ts = 0
@@ -62,6 +51,7 @@ function createPeer(id, validate) {
       state = events.follow(state, {id: peer, value: value !== false, ts: ++ts})
     },
     append: function (msg) {
+      if(state.stalled) return
       var ary = store[msg.author] = store[msg.author] || []
       if(msg.sequence === ary.length + 1) {
         validate (store[msg.author], msg)
@@ -205,6 +195,4 @@ function tick (network) {
   }
   return tick
 }
-
-
 
