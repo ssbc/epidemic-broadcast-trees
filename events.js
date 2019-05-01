@@ -243,8 +243,11 @@ function isAhead(seq1, seq2) {
 
 exports.append = function (state, msg) {
   //check if any peer requires this msg
-  if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
-
+  if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) {
+    //throw new Error('does this ever happen?')
+    //yes, but only in test/stream.js
+    return state //ignore
+  }
   var lseq = state.clock[msg.author] = msg.sequence
   for(var id in state.peers) {
     var peer = state.peers[id]
@@ -291,7 +294,6 @@ exports.receive = function (state, ev) {
 
   peer.clock[msg.author] = Math.max(peer.clock[msg.author], msg.sequence)
   rep.sent = Math.max(rep.sent, msg.sequence)
-
   //if this message has already been seen, ignore.
   if(state.clock[msg.author] >= msg.sequence) {
     if (rep.rx) {
@@ -479,7 +481,5 @@ return exports
   signatures.
 
 */
-
-
 
 
