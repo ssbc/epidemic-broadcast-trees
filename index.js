@@ -1,4 +1,4 @@
-var events = require('./events')(require('./v3'))
+var events = require('./events')()
 var Stream = require('./stream')(events)
 var progress = require('./progress')
 
@@ -125,5 +125,4 @@ module.exports = function (opts) {
 
   return self
 }
-
 

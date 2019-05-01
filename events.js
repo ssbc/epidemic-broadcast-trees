@@ -1,6 +1,8 @@
 'use strict'
 
-module.exports = function (opts) {
+var opts = require('./v3')
+
+module.exports = function () {
 
 var exports = {}
 
@@ -23,7 +25,7 @@ function isObject (o) {
 }
 
 function isBlocked(state, id, target) {
-  return state.blocks[id] && state.blocks[id][target]
+  return state.blocks[id] && state.blocks[id][target] || false
 }
 
 function isShared (state, id, peer_id) {
@@ -120,6 +122,9 @@ exports.connect = function (state, ev) {
     //if we are client, wait until we receive notes to send code.
     //this is a weird way of doing it! shouldn't we just have a bit of state
     //for wether we have received a vector clock
+    //this is a weird quirk.
+    //shouldn't use this way to determine wether
+    //to ready to replicate...
     replicating: ev.client ? null : {}
   }
 
@@ -165,7 +170,10 @@ exports.peerClock = function (state, ev) {
       var rep = peer.replicating[id] = {
         tx: false, rx: !replicating, sent: null, requested: state.clock[id]
       }
+//      console.log('NOTE', id, peer.notes[id], !replicating)
+      console.log('?NOTE', id, peer.notes[id], !replicating, state.clock[id] || 0, opts.note(state.clock[id] || 0, !replicating))
       setNotes(peer, id, state.clock[id] || 0, !replicating)
+      console.log('!NOTE', id, peer.notes[id], !replicating, state.clock[id] || 0)
     }
   }
 
@@ -474,6 +482,4 @@ return exports
   signatures.
 
 */
-
-
 

@@ -81,9 +81,3 @@ if(isNaN(seed))
   for(var i = 0; i < 100; i++) createTest(i)
 else createTest(+seed, true)
 
-
-
-
-
-
-
