@@ -158,14 +158,14 @@ Read only access is okay, but updating should only be done via ebt methods.
     <id>: {
       clock: {<id>: <seq|-1>}, //feeds that we KNOW the peer is up to. -1 if they do not replicate that feed.
       msgs: [<msg>], //queue of messages waiting to be sent.
-      retrive: [<seq>], //sequence numbers of messages to look up in our database.
+      retrive: [<id>], //ids of feeds ready for the next message to be retrived.
       notes: null || {<id>: <encoded_seq>}, //notes object (encoded vector clock to be sent)
       replicating: { //feeds being replicated to peer.
         <id>: {
-          rx: <boolean>,
-          tx: <boolean>,
-          sent: <seq|-1|null>, //sequence number of message we sent.
-          requested: <seq|-1|null> //sequence number we asked for.
+          rx: <boolean>, //true if we have asked to recieve this feed
+          tx: <boolean>, //true if we have been asked to send this feed
+          sent: <seq|-1|null>, //sequence number of message we have sent.
+          requested: <seq|-1|null> //sequence number the remote peer asked for, and thus we know they have.
         }
       }
     }
