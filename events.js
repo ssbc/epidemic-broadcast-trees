@@ -434,7 +434,6 @@ exports.timeout = function (state, ev) {
 }
 
 exports.block = function (state, ev) {
-  //also, check wether we are currently connected to a blocked peer.
   if(!ev.value) {
     if(state.blocks[ev.id]) delete state.blocks[ev.id][ev.target]
     if(isEmpty(state.blocks[ev.id]))
@@ -445,7 +444,9 @@ exports.block = function (state, ev) {
     state.blocks[ev.id][ev.target] = true
   }
 
-  if(state.peers[ev.target]) {
+  //if we blocked this peer, and we are also connected to them.
+  //then stop replicating immediately.
+  if(state.id === ev.id && state.peers[ev.target]) {
     //end replication immediately.
     state.peers[ev.target].blocked = ev.value
   }
@@ -474,6 +475,3 @@ return exports
   signatures.
 
 */
-
-
-
