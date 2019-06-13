@@ -446,12 +446,34 @@ test('test if timeout happens while loading', function (t) {
 })
 
 
+test('test blocks while connected', function (t) {
+
+  var state = {
+    id: 'alice', //we are alice
+    clock: { alice: 3, bob: 2},
+    follows: {alice: true,  bob: true}, blocks: {},
+    peers: {},
+    timeout: 1
+  }
+
+  state = events.connect(state, {id: 'bob', ts: 1, client: false})
+  state = events.peerClock(state, {id: 'bob', value:{alice: note(0, true), bob: note(0, true)}})
+
+  //charles blocks bob
+  state = events.block(state, {id: 'charles', target: 'bob', value: true})
+  t.deepEqual(state.blocks, {charles: {bob: true}})
+  t.notOk(state.peers.bob.blocked)
+  state = events.block(state, {id: 'alice', target: 'bob', value: true})
+  t.deepEqual(state.blocks, {charles: {bob: true}, alice: {bob: true}})
+  t.equal(state.peers.bob.blocked, true)
+
+  state = events.timeout(state, {ts: 4})
+
+  t.end()
+})
+
 
 }
 
 if(!module.parent)
   module.exports(require('./options'))
-
-
-
-
