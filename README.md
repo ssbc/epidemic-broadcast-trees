@@ -63,7 +63,8 @@ ebt.request('alice', true)
 ebt.request('bob', true)
 
 //create a stream and pipe it to another instance
-var stream = ebt.createStream('bob')
+//isClient and version are required.
+var stream = ebt.createStream('bob', version=3, isClient = true)
 stream.pipe(remote_stream).pipe(stream)
 ```
 
@@ -73,7 +74,7 @@ stream.pipe(remote_stream).pipe(stream)
 
 ``` js
 var pushToPull = require('push-stream-to-pull-stream')
-var stream = pushToPull(ebt.createStream(remote_id))
+var stream = pushToPull(ebt.createStream(remote_id, 3, isCient = true))
 pull(stream, remote_pull_stream, stream)
 ```
 
@@ -118,6 +119,15 @@ is a valid feed identifier. If not, it is ignored'
 
 When a message is appended to the database, tell ebt about it.
 this must be called whenever a message is successfully appended to the database.
+
+### ebt.createStream(id, version, isClient) => PushStream
+
+actually create a stream for replication. returns a [push-stream](https://github.com/push-stream/push-stream).
+the version should be 3, and `isClient` must be either true or false.
+On the client side stream, it will wait for the server to send their vector clock,
+before replying. This means that if the server doesn't actually support this api,
+you give them a change to send back an error before sending a potentially large
+vector clock.
 
 ### ebt.request(id, follow)
 
@@ -203,11 +213,3 @@ requests, and saves a lot of bandwidth compared to just requesting all feeds eac
 ## License
 
 MIT
-
-
-
-
-
-
-
-
