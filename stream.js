@@ -11,6 +11,13 @@ function timestamp () {
   return Date.now()
 }
 
+function prettyPrintLogging(data) {
+  var d = Object.assign({}, data)
+  for (var id in d)
+    d[id] = { seq: v3.getSequence(d[id]), v3seq: d[id] }
+  return d
+}
+
 function EBTStream (peer, remote, version, client, onClose) {
   this.paused = true //start out paused
   this.remote = remote
@@ -36,11 +43,12 @@ EBTStream.prototype._validate = function (clock) {
 }
 
 EBTStream.prototype.write = function (data) {
-  if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
   if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
-  if(isMsg(data))
+  if(isMsg(data)) {
+    if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
     this.peer.state =
       events.receive(this.peer.state, {id: this.remote, value:data, ts: timestamp()})
+  }
   else {
     if(data.clock)
       data.clock = this._validate(data.clock)
@@ -53,6 +61,7 @@ EBTStream.prototype.write = function (data) {
         data[k] = v3.note(v2.getSequence(_data[k]), v2.getReceive(_data[k]))
       }
     }
+    if(this.peer.logging) console.error("EBT:recv", JSON.stringify(prettyPrintLogging(data), null, 2))
     this.peer.state =
       events.notes(this.peer.state, {id: this.remote, value: data, ts: timestamp()})
   }
@@ -96,7 +105,7 @@ EBTStream.prototype.resume = function () {
     if(state.blocked)
       this.end()
     else if(state.msgs.length) {
-      if(this.peer.logging) console.error("EBT:send", JSON.stringify(state.msgs[0], null, 2))
+      if(this.peer.logging) console.error("EBT:send", JSON.stringify(prettyPrintLogging(state.msgs[0]), null, 2))
       this.sink.write(state.msgs.shift())
     }
     else {
@@ -110,7 +119,7 @@ EBTStream.prototype.resume = function () {
         notes = _notes
       }
 
-      if(this.peer.logging) console.error("EBT:send", notes)
+      if(this.peer.logging) console.error("EBT:send", JSON.stringify(prettyPrintLogging(notes), null, 2))
       this.sink.write(notes)
     }
   }
