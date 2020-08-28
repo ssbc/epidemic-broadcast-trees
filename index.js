@@ -25,6 +25,13 @@ module.exports = function (opts) {
   var state = events.initialize(opts.id, timestamp())
   state.timeout = opts.timeout || 3000
   state.clock = {}
+
+  if (!opts.isMsg) { // backwards compatibility with SSB
+    opts.isMsg = function(m) {
+      return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
+    }
+  }
+
   var self = {
     id: opts.id,
     streams: {},
@@ -50,7 +57,7 @@ module.exports = function (opts) {
       if(this.streams[remote_id])
         this.streams[remote_id].end(new Error('reconnected to peer'))
       if(this.logging) console.error('EBT:conn', remote_id)
-      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, function (peerState) {
+      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
 

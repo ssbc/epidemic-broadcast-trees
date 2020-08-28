@@ -1,15 +1,11 @@
 var v3 = require('./v3')
 
-function isMsg (m) {
-  return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
-}
-
 module.exports = function (events) {
   function timestamp () {
     return Date.now()
   }
 
-  function EBTStream (peer, remote, version, client, onClose) {
+  function EBTStream (peer, remote, version, client, isMsg, onClose) {
     this.paused = true //start out paused
     this.remote = remote
     this.peer = peer
@@ -21,6 +17,7 @@ module.exports = function (events) {
     })
     this.ended = false
     this._onClose = onClose
+    this.isMsg = isMsg
     this.sink = this.source = null
   }
 
@@ -42,10 +39,10 @@ module.exports = function (events) {
   EBTStream.prototype.write = function (data) {
     if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
     if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
-    if(isMsg(data)) {
+    if(this.isMsg(data)) {
       this.peer.state = events.receive(this.peer.state, {
         id: this.remote,
-        value:data,
+        value: data,
         ts: timestamp()
       })
     } else {

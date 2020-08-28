@@ -95,6 +95,7 @@ opts = {
   getAt: function ({id:string, sequence:number}, cb),
   append: function (msg, cb),
   isFeed: function (id),
+  isMsg: function(data)
 }
 ```
 
@@ -114,6 +115,9 @@ This is essential to detecting when a peer may have stalled.
 
 `isFeed(id)` is a validation function that returns true if `id`
 is a valid feed identifier. If not, it is ignored'
+
+`isMsg(id)` is a validation function used to distinguish between data
+messages and status messages.
 
 ### ebt.onAppend (msg)
 
