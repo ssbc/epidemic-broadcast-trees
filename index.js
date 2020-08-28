@@ -80,15 +80,6 @@ module.exports = function (opts) {
       self.state = events.append(self.state, msg)
       self.update()
     },
-//    _append: function (err, data, peer) {
-//      if(data) {
-//        self.onAppend(data.value ? data.value : data)
-//      }
-//      else
-//        //this definitely can happen.
-//        //TODO: broadcast fork proofs
-//        console.log('error appending:', err)
-//    },
     update: function () {
       //retrive next messages.
       //TODO: respond to back pressure from streams to each peer.
