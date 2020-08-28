@@ -334,8 +334,8 @@ exports.notes = function (state, ev) {
     count ++
 
     var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
-    var tx = getReceive(clock[id]) //seq >= 0
-    var isReplicate = getReplicate(clock[id])// !== -1
+    var tx = getReceive(clock[id]) // is even
+    var isReplicate = getReplicate(clock[id]) // !== -1
 
     var lseq = state.clock[id] || 0
 
