@@ -1,5 +1,4 @@
 var inherits = require('inherits')
-var v2 = require('./v2')
 var v3 = require('./v3')
 function isMsg (m) {
   return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
@@ -47,12 +46,6 @@ EBTStream.prototype.write = function (data) {
     else
       data = this._validate(data)
 
-    if(this.version === 2) {
-      var _data = data; data = {}
-      for(var k in _data) {
-        data[k] = v3.note(v2.getSequence(_data[k]), v2.getReceive(_data[k]))
-      }
-    }
     this.peer.state =
       events.notes(this.peer.state, {id: this.remote, value: data, ts: timestamp()})
   }
@@ -102,13 +95,6 @@ EBTStream.prototype.resume = function () {
     else {
       var notes = state.notes
       state.notes = null
-      if(this.version === 2) {
-        var _notes = {}
-        for(var k in notes) {
-          _notes[k] = v2.note(v3.getSequence(notes[k]), v3.getReceive(notes[k]))
-        }
-        notes = _notes
-      }
 
       if(this.peer.logging) console.error("EBT:send", notes)
       this.sink.write(notes)

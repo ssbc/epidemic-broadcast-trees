@@ -7,7 +7,7 @@ var log
 
 module.exports = function (seed, _log, _events) {
 
-if(!_events) _events = require('../events')(require('../v2'))
+if(!_events) _events = require('../events')(require('../v3'))
 log = _log
 var rng = new RNG.MT(seed || 0)
 

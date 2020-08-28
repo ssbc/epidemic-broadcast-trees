@@ -1,4 +1,3 @@
-
 exports.note = function (seq, rx) {
   return seq === -1 ? -1 : seq << 1 | !rx
 }
@@ -14,12 +13,3 @@ exports.getReplicate = function getReplicate(seq) {
 exports.getReceive = function getReceive (seq) {
   return !(seq & 1)
 }
-
-
-
-
-
-
-
-
-
