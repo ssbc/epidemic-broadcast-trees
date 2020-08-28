@@ -1,4 +1,3 @@
-var inherits = require('inherits')
 var v3 = require('./v3')
 function isMsg (m) {
   return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
