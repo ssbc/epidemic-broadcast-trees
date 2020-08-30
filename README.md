@@ -16,7 +16,7 @@ Although the primary motivation for this module is to use it in secure
 scuttlebutt, it's intended to be decoupled sufficiently to use for
 other applications.
 
-## example
+## Example
 
 implement a simple in memory log replicator.
 
@@ -82,7 +82,6 @@ var stream = pushToPull(ebt.createStream(remote_id, 3, isCient = true))
 pull(stream, remote_pull_stream, stream)
 ```
 
-
 ## API
 
 ### EBT(opts) => ebt
@@ -123,7 +122,9 @@ This is essential to detecting when a peer may have stalled.
 valid feed identifier. If not, it is ignored'
 
 `isMsg(id)` is a validation function used to distinguish between data
-messages and status messages.
+messages and status messages. A message must contain an `author` field
+that corresponds to the feed identifier and a `sequence` field. The
+field is optional for backwards compatibility.
 
 ### ebt.onAppend (msg)
 
@@ -164,7 +165,6 @@ an example object output looks like this, all values are integers >= 0.
 this follows a common pattern used across ssbc modules for
 representing progress, used for example here:
 `https://github.com/ssbc/scuttlebot/blob/master/lib/progress.js`
-
 
 #### ebt.state
 
@@ -208,7 +208,7 @@ are explicitly not replicating that feed.
 
 `<msg>` is a message that `opts.isMsg(id) === true`.
 
-## comparison to plumtree
+## Comparison to plumtree
 
 I had an idea for a gossip protocol that avoided retransmitting
 messages by putting unneeded connections into standby mode (which can
@@ -229,9 +229,10 @@ handshake is significant, so we introduce an algorithm for "request
 skipping" that avoids sending unnecessary requests, and saves a lot of
 bandwidth compared to just requesting all feeds each connection.
 
-## todo
+## TODO
 
-* handle models where it's okay to have gaps in a log (as with classic [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
+* handle models where it's okay to have gaps in a log (as with classic
+  [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
 
 ## License
 

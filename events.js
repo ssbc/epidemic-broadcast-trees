@@ -217,7 +217,7 @@ module.exports = function (opts) {
       var rep = peer.replicating[msg.author]
 
       if(rep && rep.tx && rep.sent === msg.sequence - 1) {
-        rep.sent ++
+        rep.sent++
         peer.msgs.push(msg)
         if(rep.sent < state.clock[msg.author]) {
           //use continue, not return because we still need to loop through other peers.
@@ -330,7 +330,7 @@ module.exports = function (opts) {
     }
 
     for(var id in clock) {
-      count ++
+      count++
 
       var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
       var tx = getReceive(clock[id]) // is even
@@ -458,7 +458,6 @@ module.exports = function (opts) {
     }
 
     return state
-
   }
 
   return exports

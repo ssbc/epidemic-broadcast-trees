@@ -26,9 +26,10 @@ module.exports = function (opts) {
   state.timeout = opts.timeout || 3000
   state.clock = {}
 
-  if (!opts.isMsg) { // backwards compatibility with SSB
+  if (!opts.isMsg) {
     opts.isMsg = function(m) {
-      return Number.isInteger(m.sequence) && m.sequence > 0 && 'string' == typeof m.author && m.content
+      return Number.isInteger(m.sequence) && m.sequence > 0 &&
+        typeof m.author == 'string' && m.content
     }
   }
 

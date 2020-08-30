@@ -5,7 +5,6 @@
   sum of the difference between what they have asked, and what we have sent.
 
   same for receive, but have to remember what we asked for.
-
 */
 
 module.exports = function (state) {
