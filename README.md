@@ -218,6 +218,12 @@ seq << 1 | !rx) } (= * 2 + 1?). The sequence can be extracted using
 `getSequence` and rx/tx using `getReceive` (is even). -1 means do not
 replicate.
 
+When peers connect, the server (that received the request) is expected
+to send vector clock (notes) first. It should use a local cache as the
+last known status of the client. The notes will only contain feeds
+where the sequence is different from the other end. This ensures that
+the vectors clocks sent are as small as possible.
+
 Following and blocking are handled in EBT. Following acts as the
 signal of what feeds to replicate. EBT won't connect to someone that
 has been blocked. It will not send messages of a peer (including self)
@@ -228,11 +234,6 @@ of the run is saved and pretty printed. See `test/two.js` for a good
 example.
 
 TODO:
- - describe how the clocks are synced and what can be skipped
-
-   when peers connect, the server (that received the request) is
-   expected to send vector clock (notes) first.
-
  - is there a way to reset a remote clock? In the case where one nukes
    they local db and needs to resync.
 
