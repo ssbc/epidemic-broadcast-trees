@@ -208,6 +208,37 @@ are explicitly not replicating that feed.
 
 `<msg>` is a message that `opts.isMsg(id) === true`.
 
+## Replication overview
+
+The state of other peers are stored outside this module in a lossy
+stored in the SSB-EBT module. See `getClock` & `setClock`.
+
+Notes (aka the vector clock) is stored as { feed: (seq === -1 ? -1 :
+seq << 1 | !rx) } (= * 2 + 1?). The sequence can be extracted using
+`getSequence` and rx/tx using `getReceive` (is even). -1 means do not
+replicate.
+
+Following and blocking are handled in EBT. Following acts as the
+signal of what feeds to replicate. EBT won't connect to someone that
+has been blocked. It will not send messages of a peer (including self)
+to another peer if the first peer blocks the second.
+
+The tests are very readable because they use a simulator where a trace
+of the run is saved and pretty printed. See `test/two.js` for a good
+example.
+
+TODO:
+ - describe how the clocks are synced and what can be skipped
+
+   when peers connect, the server (that received the request) is
+   expected to send vector clock (notes) first.
+
+ - is there a way to reset a remote clock? In the case where one nukes
+   they local db and needs to resync.
+
+ - refactor out the author / sequence stuff so we can send other kind
+   of data than js objects.
+
 ## Comparison to plumtree
 
 I had an idea for a gossip protocol that avoided retransmitting
