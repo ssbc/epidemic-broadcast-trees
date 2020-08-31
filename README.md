@@ -25,12 +25,12 @@ var clocks = {}
 var logs = {}
 
 function append (msg, cb) {
-  var log = logs[msg.author] = logs[msg.author] || []
+  var log = logs[msg.author] = logs[msg.author] || {}
   //check that this is the next expected message.
-  if(msg.sequence != log.length)
+  if(msg.sequence != Object.keys(log).length + 1)
     cb(new Error('out of order, found:'+msg.sequence+', expected:'+log.length))
   else {
-    log.push(msg)
+    log[msg.sequence] = msg
     ebt.onAppend(msg)
     cb()
   }
