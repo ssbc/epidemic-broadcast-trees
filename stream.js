@@ -33,7 +33,7 @@ module.exports = function (events) {
   }
 
   EBTStream.prototype.write = function (data) {
-    if(this.peer.logging) console.error("EBT:recv", JSON.stringify(data, null, 2))
+    if(this.peer.logging) console.log("EBT:recv", JSON.stringify(data, null, 2))
     if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
     if(this.isMsg(data)) {
       this.peer.state = events.receive(this.peer.state, {
@@ -57,7 +57,7 @@ module.exports = function (events) {
     //check if we have already ended
     if(!this.peer.state.peers[this.remote]) return
 
-    if(this.peer.logging) console.error('EBT:dcon', this.remote)
+    if(this.peer.logging) console.log('EBT:dcon', this.remote)
 
     var peerState = this.peer.state.peers[this.remote]
     this.peer.state = events.disconnect(this.peer.state, {
@@ -91,14 +91,14 @@ module.exports = function (events) {
       if(state.blocked)
         this.end()
       else if(state.msgs.length) {
-        if(this.peer.logging) console.error("EBT:send", JSON.stringify(state.msgs[0], null, 2))
+        if(this.peer.logging) console.log("EBT:send", JSON.stringify(state.msgs[0], null, 2))
         this.sink.write(state.msgs.shift())
       }
       else {
         var notes = state.notes
         state.notes = null
 
-        if(this.peer.logging) console.error("EBT:send", notes)
+        if(this.peer.logging) console.log("EBT:send (" + this.peer.id + ")", notes)
         this.sink.write(notes)
       }
     }
