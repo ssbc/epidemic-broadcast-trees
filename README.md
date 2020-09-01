@@ -224,6 +224,9 @@ last known status of the client. The notes will only contain feeds
 where the sequence is different from the other end. This ensures that
 the vectors clocks sent are as small as possible.
 
+When connecting to multiple nodes, only request new messages using rx
+for a feed from one of the nodes. See `test/multiple.js`.
+
 Following and blocking are handled in EBT. Following acts as the
 signal of what feeds to replicate. EBT won't connect to someone that
 has been blocked. It will not send messages of a peer (including self)
