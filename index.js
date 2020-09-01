@@ -22,7 +22,7 @@ function createValidate (isFeed) {
 }
 
 module.exports = function (opts) {
-  var state = events.initialize(opts.id, timestamp())
+  var state = events.initialize(opts.id, opts.getMsgAuthor, opts.getMsgSequence)
   state.timeout = opts.timeout || 3000
   state.clock = {}
 

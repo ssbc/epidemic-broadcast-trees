@@ -7,7 +7,7 @@ var note = events.note
 
 test('if connects to multiple peers, should replicate a feed from only one', function (t) {
 
-  var state = events.initialize('alice', Date.now())
+  var state = events.initialize('alice')
   state.follows = {
     alice: true, bob: true, charles: true
   }

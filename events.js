@@ -86,7 +86,20 @@ module.exports = function (opts) {
     }
   }
 
-  exports.initialize = function (id) {
+  // defaults for backwards compatibility
+  exports.getMsgAuthor = function(msg) {
+    return msg.author
+  }
+  exports.getMsgSequence = function(msg) {
+    return msg.sequence
+  }
+
+  exports.initialize = function (id, getMsgAuthor, getMsgSequence) {
+    if (getMsgAuthor)
+      exports.getMsgAuthor = getMsgAuthor
+    if (getMsgSequence)
+      exports.getMsgSequence = getMsgSequence
+
     return {
       id: id,
       clock: null,
@@ -213,15 +226,17 @@ module.exports = function (opts) {
       var peer = state.peers[id]
       if(!peer.replicating) continue;
       //BLOCK: check wether id has blocked this peer
-      var rep = peer.replicating[msg.author]
+      const author = exports.getMsgAuthor(msg)
+      const sequence = exports.getMsgSequence(msg)
+      var rep = peer.replicating[author]
 
-      if(rep && rep.tx && rep.sent === msg.sequence - 1) {
+      if(rep && rep.tx && rep.sent === sequence - 1) {
         rep.sent++
         peer.msgs.push(msg)
-        if(rep.sent < state.clock[msg.author]) {
+        if(rep.sent < state.clock[author]) {
           //use continue, not return because we still need to loop through other peers.
-          if(~peer.retrive.indexOf(msg.author)) continue
-          peer.retrive.push(msg.author)
+          if(~peer.retrive.indexOf(author)) continue
+          peer.retrive.push(author)
         }
       }
     }
@@ -235,18 +250,21 @@ module.exports = function (opts) {
   }
 
   exports.append = function (state, msg) {
+    const author = exports.getMsgAuthor(msg)
+    const sequence = exports.getMsgSequence(msg)
     //check if any peer requires this msg
-    if(state.clock[msg.author] != null && state.clock[msg.author] !== msg.sequence - 1) return state //ignore
+    if(state.clock[author] != null && state.clock[author] !== sequence - 1)
+      return state //ignore
 
-    var lseq = state.clock[msg.author] = msg.sequence
+    var lseq = state.clock[author] = sequence
     for(var id in state.peers) {
       var peer = state.peers[id]
-      if(!peer.clock || !peer.replicating || !isShared(state, msg.author, id)) continue
+      if(!peer.clock || !peer.replicating || !isShared(state, author, id)) continue
       //BLOCK: check wether msg.author has blocked this peer
 
-      var seq = peer.clock[msg.author]
+      var seq = peer.clock[author]
 
-      var rep = peer.replicating[msg.author]
+      var rep = peer.replicating[author]
 
       if(rep && rep.tx && rep.sent == lseq - 1 && lseq > seq) {
         peer.msgs.push(msg)
@@ -255,9 +273,9 @@ module.exports = function (opts) {
       //if we are ahead of this peer, and not in tx mode, let them know that.
       else if(
         isAhead(lseq, seq) &&
-          (rep ? !rep.tx && rep.sent != null : state.follows[msg.author])
+          (rep ? !rep.tx && rep.sent != null : state.follows[author])
       )
-        setNotes(peer, msg.author, msg.sequence, false)
+        setNotes(peer, author, sequence, false)
     }
 
     return state
@@ -276,19 +294,21 @@ module.exports = function (opts) {
 
     //we _know_ that this peer is upto at least this message now.
     //(but maybe they already told us they where ahead further)
+    const author = exports.getMsgAuthor(msg)
+    const sequence = exports.getMsgSequence(msg)
     var peer = state.peers[ev.id]
-    var rep = peer.replicating[msg.author]
+    var rep = peer.replicating[author]
 
     //if we havn't asked for this, ignore it. (this is remote speaking protocol wrong!)
     if(!rep) return state
 
-    peer.clock[msg.author] = Math.max(peer.clock[msg.author], msg.sequence)
-    rep.sent = Math.max(rep.sent, msg.sequence)
+    peer.clock[author] = Math.max(peer.clock[author], sequence)
+    rep.sent = Math.max(rep.sent, sequence)
 
     //if this message has already been seen, ignore.
-    if(state.clock[msg.author] >= msg.sequence) {
+    if(state.clock[author] >= sequence) {
       if (rep.rx) {
-        setNotes(peer, msg.author, state.clock[msg.author], false)
+        setNotes(peer, author, state.clock[author], false)
       }
       //XXX activate some other peer?
       return state

@@ -98,7 +98,9 @@ opts = {
   getAt: function ({id:string, sequence:number}, cb),
   append: function (msg, cb),
   isFeed: function (id),
-  isMsg: function(data)
+  isMsg: function(data),
+  getMsgAuthor: function(msg),
+  getMsgSequence: function(msg)
 }
 ```
 
@@ -125,6 +127,12 @@ valid feed identifier. If not, it is ignored'
 messages and status messages. A message must contain an `author` field
 that corresponds to the feed identifier and a `sequence` field. The
 field is optional for backwards compatibility.
+
+`getMsgAuthor(msg)` is a function that given a message returns the
+author. The field is optional for backwards compatibility.
+
+`getMsgSequence(msg)` is a function that given a message returns the
+sequence. The field is optional for backwards compatibility.
 
 ### ebt.onAppend (msg)
 
@@ -239,9 +247,6 @@ example.
 TODO:
  - is there a way to reset a remote clock? In the case where one nukes
    they local db and needs to resync.
-
- - refactor out the author / sequence stuff so we can send other kind
-   of data than js objects.
 
 ## Comparison to plumtree
 
