@@ -214,23 +214,23 @@ used for other things too)
 `<seq>` is an positive integer or zero. -1 is used to represent if the
 are explicitly not replicating that feed.
 
-`<msg>` is a message that `opts.isMsg(id) === true`.
+`<msg>` is a message where `opts.isMsg(id) === true`.
 
 ## Replication overview
 
 The state of other peers are stored outside this module in a lossy
 stored in the SSB-EBT module. See `getClock` & `setClock`.
 
-Notes (aka the vector clock) is stored as { feed: (seq === -1 ? -1 :
+Notes (aka the vector clock) are stored as { feed: (seq === -1 ? -1 :
 seq << 1 | !rx) } (= * 2 + 1?). The sequence can be extracted using
 `getSequence` and rx/tx using `getReceive` (is even). -1 means do not
 replicate.
 
 When peers connect, the server (that received the request) is expected
-to send vector clock (notes) first. It should use a local cache as the
-last known status of the client. The notes will only contain feeds
-where the sequence is different from the other end. This ensures that
-the vectors clocks sent are as small as possible.
+to send their vector clock (notes) first. It should use a local cache
+as the last known status of the client. The notes will only contain
+feeds where the sequence is different from the other end. This ensures
+that the vectors clocks sent are as small as possible.
 
 When connecting to multiple nodes, only request new messages using rx
 for a feed from one of the nodes. See `test/multiple.js`.
