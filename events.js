@@ -318,7 +318,7 @@ module.exports = function (opts) {
     state.peers[ev.id].ts = ev.ts
 
     //FORKS ignore additional messages if we have already found an invalid one.
-    if(isShared(state, ev.value.author, ev.id))
+    if(isShared(state, exports.getMsgAuthor(ev.value), ev.id))
       state.receive.push(ev)
     //Q: possibly update the receiving mode?
 

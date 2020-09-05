@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "rng": "^0.2.2",
+    "bipf": "^1.3.0",
     "tape": "^4.6.3"
   },
   "scripts": {
