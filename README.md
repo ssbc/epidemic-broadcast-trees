@@ -1,9 +1,9 @@
-# epidemic-broadcast-trees
+# Epidemic Broadcast Trees
 
-This module is based on plumtree Epidemic Broadcast Trees paper, but
-adapted to also replicate logs, and optimized to achive a minimal
-overhead (the cost of the protocol is linear with the number of
-messages to be sent)
+This module is loosely based on plumtree Epidemic Broadcast Trees
+paper, but adapted to also replicate logs, and optimized to achive a
+minimal overhead (the cost of the protocol is linear with the number
+of messages to be sent)
 
 It's a algorithm that combines the robustness of a flooding epidemic
 gossip broadcast, with the efficiency of a tree model. It's intended
