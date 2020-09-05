@@ -47,11 +47,6 @@ test('partial replication', function (t) {
   // charlie is not able to get alices feed from bob
   t.deepEqual({}, charlie.store)
 
-  // FIXME
-  // unless charlie disconnects from bob, charlie will not be able to
-  // get data from alice
-  charlie.disconnect(bob)
-  
   charlie.connect(alice)
   
   while(tick(network)) ;

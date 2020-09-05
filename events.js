@@ -35,7 +35,13 @@ module.exports = function (opts) {
       if(id !== ignore_id) {
         var peer = state.peers[id]
         if(peer.notes && getReceive(peer.notes[id])) return id
-        if(peer.replicating && peer.replicating[feed_id] && peer.replicating[feed_id].rx) return id
+
+        // for replicating the node must have replicated something
+        // not just rx
+        // this fixed a partial replication bug where a node is unable to
+        // send the full log
+        var id_has_sent = peer.replicating && peer.replicating[id] && peer.replicating[id].sent != -1
+        if(peer.replicating && peer.replicating[feed_id] && peer.replicating[feed_id].rx && id_has_sent) return id
       }
     }
     return false
