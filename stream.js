@@ -43,11 +43,6 @@ module.exports = function (events) {
         ts: timestamp()
       })
     } else {
-      if(data.clock)
-        data.clock = this._validate(data.clock)
-      else
-        data = this._validate(data)
-
       if(this.version === 2) {
         var _data = data; data = {}
         for(var k in _data) {
