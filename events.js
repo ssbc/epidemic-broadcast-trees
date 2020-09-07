@@ -81,7 +81,8 @@ module.exports = function (opts) {
 
     var rep = peer.replicating[feed]
     if(rep) {
-      rep.rx = rx
+      //note: v2 doesn't have a way to represent seq=0 but don't rx, so always rx if zero.
+      rep.rx = getReceive(peer.notes[feed])
       rep.requested = seq
     }
   }
