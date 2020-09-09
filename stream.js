@@ -97,7 +97,6 @@ module.exports = function (events) {
       else {
         var notes = state.notes
         state.notes = null
-
         if(this.peer.logging) console.log("EBT:send (" + this.peer.id + ")", notes)
         this.sink.write(notes)
       }

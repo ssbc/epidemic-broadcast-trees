@@ -218,8 +218,8 @@ are explicitly not replicating that feed.
 
 ## Replication overview
 
-The state of other peers are stored outside this module in a lossy
-stored in the SSB-EBT module. See `getClock` & `setClock`.
+The state of other peers are stored outside this module in the SSB-EBT
+module. See `getClock` & `setClock`.
 
 Notes (aka the vector clock) are stored as { feed: (seq === -1 ? -1 :
 seq << 1 | !rx) } (= * 2 + 1?). The sequence can be extracted using
@@ -228,11 +228,9 @@ replicate.
 
 When peers connect, the server (that received the request) is expected
 to send their vector clock (notes) first. It should use a local cache
-as the last known status of the client. The notes will only contain
-feeds where the sequence is different from the other end. This ensures
-that the vectors clocks sent are as small as possible.
-
-When connecting to multiple nodes, only request new messages using rx
+as the last known status of the client. The notes should only contain
+feeds changed since their last exchange (see "request skipping"). This
+ensures that the vectors clocks sent are as small as possible.
 for a feed from one of the nodes. See `test/multiple.js`.
 
 Following and blocking are handled in EBT. Following acts as the
@@ -243,10 +241,6 @@ to another peer if the first peer blocks the second.
 The tests are very readable because they use a simulator where a trace
 of the run is saved and pretty printed. See `test/two.js` for a good
 example.
-
-TODO:
- - is there a way to reset a remote clock? In the case where one nukes
-   they local db and needs to resync.
 
 ## Comparison to plumtree
 
