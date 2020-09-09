@@ -231,8 +231,6 @@ to send their vector clock (notes) first. It should use a local cache
 as the last known status of the client. The notes should only contain
 feeds changed since their last exchange (see "request skipping"). This
 ensures that the vectors clocks sent are as small as possible.
-
-When connecting to multiple peers, only request new messages using rx
 for a feed from one of the nodes. See `test/multiple.js`.
 
 Following and blocking are handled in EBT. Following acts as the
