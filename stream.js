@@ -1,5 +1,3 @@
-var v3 = require('./v3')
-
 module.exports = function (events) {
   function timestamp () {
     return Date.now()
