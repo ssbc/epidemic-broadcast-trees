@@ -1,4 +1,3 @@
-
 var createSimulator = require('./simulator')
 var options = require('./options')
 var progress = require('../progress')
