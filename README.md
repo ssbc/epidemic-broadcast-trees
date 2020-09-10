@@ -123,16 +123,17 @@ This is essential to detecting when a peer may have stalled.
 `isFeed(id)` is a validation function that returns true if `id` is a
 valid feed identifier. If not, it is ignored'
 
-`isMsg(id)` is a validation function used to distinguish between data
+### optional for backwards compatibility
+
+`isMsg(data)` is a validation function used to distinguish between data
 messages and status messages. A message must contain an `author` field
-that corresponds to the feed identifier and a `sequence` field. The
-field is optional for backwards compatibility.
+that corresponds to the feed identifier and a `sequence` field.
 
 `getMsgAuthor(msg)` is a function that given a message returns the
-author. The field is optional for backwards compatibility.
+author.
 
 `getMsgSequence(msg)` is a function that given a message returns the
-sequence. The field is optional for backwards compatibility.
+sequence.
 
 ### ebt.onAppend (msg)
 
