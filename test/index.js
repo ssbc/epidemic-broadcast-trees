@@ -127,7 +127,7 @@ test('initialize, but append before peerClock loads', function (t) {
   state = events.connect(state, {id: 'alice', client: false})
   state = events.append(state, {author: 'bob', sequence: 3, content: {}})
 
-  events.peerClock(state, {id: 'alice', value: {}})
+  state = events.peerClock(state, {id: 'alice', value: {}})
   t.end()
 })
 
