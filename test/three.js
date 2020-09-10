@@ -70,11 +70,6 @@ function createTest (seed, log) {
     t.deepEqual(bob.store, alice.store, 'alice<->bob')
     t.deepEqual(charles.store, alice.store, 'charles<->alice')
 
-    var totals = tick.output.reduce(function (a, b) {
-      if(!a) a = [0,0,0]; a[0] ++; a[1 + (+b.msg)] ++
-      return a
-    }, null)
-
     if(log) tick.log()
 
     t.end()

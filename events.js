@@ -176,7 +176,7 @@ module.exports = function (version) {
         //just don't ask for it yet?
         var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
         peer.replicating = peer.replicating || {}
-        var rep = peer.replicating[id] = {
+        peer.replicating[id] = {
           tx: false, rx: !replicating, sent: null, requested: state.clock[id]
         }
         setNotes(peer, id, state.clock[id] || 0, !replicating)
@@ -343,7 +343,7 @@ module.exports = function (version) {
     var peer = state.peers[ev.id]
     if(!peer) throw new Error('lost state of peer:'+ev.id)
     if(!peer.clock) throw new Error("received notes, but has not set the peer's clock yet")
-    var count = 0, first = false
+    var count = 0
 
     //if we are client, and this is the first notes we receive
     if(!peer.replicating) {
@@ -441,7 +441,7 @@ module.exports = function (version) {
         var peer = state.peers[peer_id]
         if(peer.clock && peer.clock[feed_id] || 0 > state.clock[feed_id] || 0) {
           peer.replicating = peer.replicating || {}
-          var rep = peer.replicating[feed_id] = peer.replicating[feed_id] || {
+          peer.replicating[feed_id] = peer.replicating[feed_id] || {
             tx: false, rx: true, sent: -1, requested: state.clock[feed_id]
           }
           setNotes(peer, feed_id, state.clock[feed_id], true)

@@ -64,15 +64,6 @@ module.exports = function (seed, _log, _events) {
     }
   }
 
-  function randomKey (obj) {
-    var keys = Object.keys(obj)
-    return keys[~~(keys.length*rng.random())]
-  }
-
-  function random () {
-    return rng.random()
-  }
-
   function shuffle (ary) {
     for(var i = 0; i < ary.length; i++) {
       var j = ~~(rng.random()*ary.length)
