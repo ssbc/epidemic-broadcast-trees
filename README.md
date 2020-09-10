@@ -1,9 +1,9 @@
 # Epidemic Broadcast Trees
 
 This module is loosely based on plumtree Epidemic Broadcast Trees
-paper, but adapted to also replicate logs, and optimized to achive a
-minimal overhead (the cost of the protocol is linear with the number
-of messages to be sent)
+[EBT paper], but adapted to also replicate logs, and optimized
+to achive a minimal overhead (the cost of the protocol is linear with
+the number of messages to be sent)
 
 It's a algorithm that combines the robustness of a flooding epidemic
 gossip broadcast, with the efficiency of a tree model. It's intended
@@ -142,8 +142,7 @@ database.
 
 ### ebt.createStream(id, version, isClient) => PushStream
 
-Create a stream for replication. returns a
-[push-stream](https://github.com/push-stream/push-stream). The current
+Create a stream for replication. returns a [push-stream]. The current
 version is 3, and `isClient` must be either true or false.  On the
 client side stream, it will wait for the server to send their vector
 clock, before replying. This means that if the server doesn't actually
@@ -250,8 +249,8 @@ I had an idea for a gossip protocol that avoided retransmitting
 messages by putting unneeded connections into standby mode (which can
 be brought back into service when necessary) and then was pleasantly
 surprised to discover it was not a new idea, but had already been
-described in a paper - and there is an implementation of that paper in
-erlang here: https://github.com/helium/plumtree
+described in a paper - and there is an [EBT implementation in erlang]
+of that paper.
 
 There are some small differences, mainly because I want to send
 messages in order, which makes it easy to represent what messages have
@@ -265,11 +264,40 @@ handshake is significant, so we introduce an algorithm for "request
 skipping" that avoids sending unnecessary requests, and saves a lot of
 bandwidth compared to just requesting all feeds each connection.
 
+## Related work
+
+[Brisa] also describes a broadcast protocal that at first glace looks
+very close to the [EBT paper]. It is modelled using two components:
+tree construction/maintenance and peer sampling. Peer sampling is in
+SSB terminology where [SSB conn] is used. Brisa uses [HyParView],
+written by the same authors as the [EBT paper] for peer
+sampling. Compared to EBT, Brisa does not depend on lazy mode between
+peers where only the sequence information is maintained, instead it
+depends on HyParView to detect failures. This has the advantage that
+it does not need a timer, that is highly latency sensitive. It also
+has a nice property in how messages are disseminated in that they are
+piggybacked with information about the tree that allows the parent
+selection to make better choices as it has a better view of the
+network. The sequence numbers are an important part of the protocol
+implemented here because they, as described earlier, are used to
+ensure that messages are disseminated in a eventually consistent
+manor.
+
+
 ## TODO
 
 * handle models where it's okay to have gaps in a log (as with classic
-  [insecure scuttlebutt](https://github.com/dominictarr/scuttlebutt)
+  [insecure scuttlebutt]
 
 ## License
 
 MIT
+
+EBT paper: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.190.3504
+Brisa: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.360.1724
+HParView: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.190.3289
+push-stream: https://github.com/push-stream/push-stream
+SSB conn: https://github.com/staltz/ssb-conn
+secure-scuttlebutt: https://scuttlebutt.nz
+insecure scuttlebutt: https://github.com/dominictarr/scuttlebutt
+EBT implementation in erlang: https://github.com/helium/plumtree
