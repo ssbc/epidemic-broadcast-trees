@@ -94,12 +94,15 @@ module.exports = function (opts) {
       //TODO: respond to back pressure from streams to each peer.
       //if a given stream is paused, don't retrive more msgs
       //for that peer/stream.
-      for(var id in this.state.peers) {
-        var state = this.state.peers[id]
+      for(var peer in this.state.peers) {
+        var state = this.state.peers[peer]
         while(state.retrive.length) {
-          id = state.retrive.shift()
+          var id = state.retrive.shift()
           if(state.replicating[id])
-            opts.getAt({id: id, sequence:state.replicating[id].sent+1}, this._retrive)
+            opts.getAt({
+              id: id,
+              sequence:state.replicating[id].sent+1
+            }, this._retrive)
         }
       }
       if(this.state.receive.length) {

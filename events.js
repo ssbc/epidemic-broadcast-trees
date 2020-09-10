@@ -177,7 +177,10 @@ module.exports = function (version) {
         var replicating = isAlreadyReplicating(state, id, ev.id)// && lseq
         peer.replicating = peer.replicating || {}
         peer.replicating[id] = {
-          tx: false, rx: !replicating, sent: null, requested: state.clock[id]
+          tx: false,
+          rx: !replicating,
+          sent: null,
+          requested: state.clock[id]
         }
         setNotes(peer, id, state.clock[id] || 0, !replicating)
       }
