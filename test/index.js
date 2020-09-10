@@ -10,7 +10,7 @@ function isFunction (f) {
 
 function is (t, actual, expected, path) {
   if(isFunction(expected))
-    expected.call(actual, path.concat(k))
+    expected.call(actual)
   else t.equal(expected, actual, 'expected '+path.join('.')+' to equal:'+actual)
 }
 
@@ -127,7 +127,7 @@ test('initialize, but append before peerClock loads', function (t) {
   state = events.connect(state, {id: 'alice', client: false})
   state = events.append(state, {author: 'bob', sequence: 3, content: {}})
 
-  state = events.peerClock(state, {id: 'alice', value: {}})
+  events.peerClock(state, {id: 'alice', value: {}})
   t.end()
 })
 
@@ -253,7 +253,7 @@ test('append when not in TX mode', function (t) {
 
   state = events.append(state, {author: 'alice', sequence: 4, content: {}})
   t.deepEqual(state.peers.bob.notes, {bob: note(2, true), alice: note(4, false)})
-  var rep = state.peers.bob.replicating.alice
+  rep = state.peers.bob.replicating.alice
   t.equal(rep.tx, false)
   t.equal(rep.sent, 3)
 

@@ -6,13 +6,14 @@ function timestamp () {
   return Date.now()
 }
 
+// Returns a function that removes keys from `clock` where `!isFeed(key)`.
 function createValidate (isFeed) {
   return function (clock) {
-    for(var k in clock) {
-      if(!isFeed(k)) {
+    for(var outerKey in clock) {
+      if(!isFeed(outerKey)) {
         var _clock = {}
-        for(var k in clock) {
-          if(isFeed(k)) _clock[k] = clock[k]
+        for(var innerKey in clock) {
+          if(isFeed(innerKey)) _clock[innerKey] = clock[innerKey]
         }
         return _clock
       }
@@ -93,17 +94,20 @@ module.exports = function (opts) {
       //TODO: respond to back pressure from streams to each peer.
       //if a given stream is paused, don't retrive more msgs
       //for that peer/stream.
-      for(var id in this.state.peers) {
-        var state = this.state.peers[id]
+      for(var peer in this.state.peers) {
+        var state = this.state.peers[peer]
         while(state.retrive.length) {
           var id = state.retrive.shift()
           if(state.replicating[id])
-            opts.getAt({id: id, sequence:state.replicating[id].sent+1}, this._retrive)
+            opts.getAt({
+              id: id,
+              sequence:state.replicating[id].sent+1
+            }, this._retrive)
         }
       }
       if(this.state.receive.length) {
         var ev = this.state.receive.shift()
-        opts.append(ev.value, function (err, data) {
+        opts.append(ev.value, function (err) {
           if(err) {
             if(this.logging) console.error('EBT:err', err)
             self.block(ev.value.author, ev.id, true)
