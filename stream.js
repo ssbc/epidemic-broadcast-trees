@@ -1,6 +1,3 @@
-var v2 = require('./v2')
-var v3 = require('./v3')
-
 module.exports = function (events) {
   function timestamp () {
     return Date.now()
@@ -43,13 +40,6 @@ module.exports = function (events) {
         ts: timestamp()
       })
     } else {
-      if(this.version === 2) {
-        var _data = data; data = {}
-        for(var k in _data) {
-          data[k] = v3.note(v2.getSequence(_data[k]), v2.getReceive(_data[k]))
-        }
-      }
-
       this.peer.state = events.notes(this.peer.state, {
         id: this.remote,
         value: data,
@@ -105,15 +95,6 @@ module.exports = function (events) {
       else {
         var notes = state.notes
         state.notes = null
-
-        if(this.version === 2) {
-          var _notes = {}
-          for(var k in notes) {
-            _notes[k] = v2.note(v3.getSequence(notes[k]), v3.getReceive(notes[k]))
-          }
-          notes = _notes
-        }
-
         if(this.peer.logging) console.log("EBT:send (" + this.peer.id + ")", notes)
         this.sink.write(notes)
       }

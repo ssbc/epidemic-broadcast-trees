@@ -1,16 +1,15 @@
 'use strict'
 
-module.exports = function (opts) {
-  var exports = {}
+module.exports = function (version) {
 
-  var getReceive = opts.getReceive
-  var getReplicate = opts.getReplicate
-  var getSequence = opts.getSequence
+  const { note, getReceive, getReplicate, getSequence } = version
 
-  exports.note = opts.note
-  exports.getReceive = opts.getReceive
-  exports.getReplicate = opts.getReplicate
-  exports.getSequence = opts.getSequence
+  var exports = {
+    note,
+    getReceive,
+    getReplicate,
+    getSequence
+  }
 
   function isEmpty (o) {
     for(var k in o) return false
@@ -77,12 +76,11 @@ module.exports = function (opts) {
 
   function setNotes (peer, feed, seq, rx) {
     peer.notes = peer.notes || {}
-    peer.notes[feed] = opts.note(seq, rx)
+    peer.notes[feed] = note(seq, rx)
 
     var rep = peer.replicating[feed]
     if(rep) {
-      //note: v2 doesn't have a way to represent seq=0 but don't rx, so always rx if zero.
-      rep.rx = getReceive(peer.notes[feed])
+      rep.rx = rx
       rep.requested = seq
     }
   }
