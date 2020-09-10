@@ -295,7 +295,7 @@ MIT
 
 [EBT paper]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.190.3504
 [Brisa]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.360.1724
-[HParView]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.190.3289
+[HyParView]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.190.3289
 [push-stream]: https://github.com/push-stream/push-stream
 [SSB conn]: https://github.com/staltz/ssb-conn
 [secure-scuttlebutt]: https://scuttlebutt.nz
