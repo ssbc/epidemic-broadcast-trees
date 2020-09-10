@@ -1,4 +1,3 @@
-
 var test = require('tape')
 
 var events = require('../events')(require('./options'))
@@ -17,7 +16,6 @@ test('client does not send {} until received it', function (t) {
 
   state.peers.bob.notes = null
 
-
   t.end()
 })
 
@@ -30,7 +28,3 @@ test('client does not send {} until received it, but will send empty note, one t
   t.deepEqual(state.peers.bob.notes, {})
   t.end()
 })
-
-
-
-
