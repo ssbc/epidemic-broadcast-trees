@@ -1,4 +1,3 @@
-
 var createSimulator = require('./simulator')
 var options = require('./options')
 
@@ -39,7 +38,3 @@ if(isNaN(seed))
     createTest(i)
 else
   createTest(+seed, true)
-
-
-
-
