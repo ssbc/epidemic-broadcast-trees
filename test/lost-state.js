@@ -18,6 +18,11 @@ function flatten (output) {
   }, {alice: {}, bob: {}})
 }
 
+function isComplete (peer, name, t) {
+  var prog = progress(peer.state)
+  t.equal(prog.current, prog.target, name +' is complete')
+}
+
 test('loose local state', function (t) {
   var tick = createSimulator(0, true, options)
 
@@ -40,8 +45,6 @@ test('loose local state', function (t) {
 
   alice.connect(bob)
 
-  console.log("bob is", bob)
-  
   while(tick(network)) ;
 
   alice.disconnect(bob)
@@ -52,18 +55,19 @@ test('loose local state', function (t) {
 
   t.deepEqual(bob.store, alice.store)
 
-  function isComplete (peer, name) {
-    var prog = progress(peer.state)
-    t.equal(prog.current, prog.target, name +' is complete')
-  }
+  isComplete(alice, 'alice', t)
+  isComplete(bob, 'bob', t)
 
-  isComplete(alice, 'alice')
-  isComplete(bob, 'bob')
+  console.log("===========START OVER===========")
 
   // bob gets a brick in his head and forgets everything
   bob = network['bob'] = tick.createPeer('bob')
   bob.init({})
   t.deepEqual(bob.store, {})
+
+  // we must explicitly say who we follow, if we do, we get the messages
+  bob.follow('alice')
+  bob.follow('bob')
   
   alice.connect(bob)
 
@@ -71,8 +75,8 @@ test('loose local state', function (t) {
 
   t.deepEqual(bob.store, alice.store)
   
-  isComplete(alice, 'alice')
-  isComplete(bob, 'bob')
+  isComplete(alice, 'alice', t)
+  isComplete(bob, 'bob', t)
   
   t.end()
 })
