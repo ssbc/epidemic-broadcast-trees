@@ -43,13 +43,16 @@ module.exports = function (version) {
     }
     return false
   }
-
-  function max (a, b) {
-    if(a == null) return b
-    if(a == -1 || b == -1) return b
-    return Math.max(a, b)
+  
+  // lower numbers should be respected
+  // if one is -1 and the other is not, use the other
+  function fixSeq (local, remote) {
+    if(local == null) return remote
+    if(local == -1 || remote == -1) return remote
+    if(remote == 0) return 0
+    return Math.max(local, remote)
   }
-
+  
   //check if a feed is available from a peer apart from ignore_id
 
   function isAvailable(state, feed_id, ignore_id) {
@@ -357,7 +360,7 @@ module.exports = function (version) {
     for(var id in clock) {
       count++
 
-      var seq = peer.clock[id] = max(peer.clock[id], getSequence(clock[id]))
+      var seq = peer.clock[id] = fixSeq(peer.clock[id], getSequence(clock[id]))
       var tx = getReceive(clock[id]) // is even
       var isReplicate = getReplicate(clock[id]) // !== -1
 

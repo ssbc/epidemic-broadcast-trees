@@ -37,6 +37,7 @@ test('loose local state', function (t) {
   alice.append({author: 'alice', sequence: 2, content: {}})
   alice.append({author: 'alice', sequence: 3, content: {}})
   bob.append({author: 'bob', sequence: 1, content: {}})
+  bob.append({author: 'bob', sequence: 2, content: {}})
 
   alice.follow('bob')
   alice.follow('alice')
@@ -50,7 +51,7 @@ test('loose local state', function (t) {
   alice.disconnect(bob)
 
   //should have set up peer.replicatings to tx/rx alice
-  t.deepEqual(flatten(tick.output), {alice: {alice: 3, bob: 0}, bob: {alice: 0, bob: 1}})
+  t.deepEqual(flatten(tick.output), {alice: {alice: 3, bob: 0}, bob: {alice: 0, bob: 2}})
   t.equal(count(tick.output), 2)
 
   t.deepEqual(bob.store, alice.store)
@@ -65,18 +66,51 @@ test('loose local state', function (t) {
   bob.init({})
   t.deepEqual(bob.store, {})
 
-  // we must explicitly say who we follow, if we do, we get the messages
-  bob.follow('alice')
   bob.follow('bob')
-  
+
   alice.connect(bob)
 
   while(tick(network)) ;
 
+  console.log("===========SECOND ROUND===========")
+
+  // simulate a contact message received in bobs feed
+  bob.follow('alice')
+
+  while(tick(network)) ;
+
   t.deepEqual(bob.store, alice.store)
-  
+
   isComplete(alice, 'alice', t)
   isComplete(bob, 'bob', t)
-  
+
+  alice.disconnect(bob)
+
+  console.log("===========START OVER 2===========")
+
+  // bob gets a brick in his head and restores from backup
+  bob = network['bob'] = tick.createPeer('bob')
+  bob.init({})
+
+  bob.append({author: 'bob', sequence: 1, content: {}})
+
+  bob.follow('bob')
+
+  alice.connect(bob)
+
+  while(tick(network)) ;
+
+  console.log("===========SECOND ROUND===========")
+
+  // simulate a contact message received in bobs feed
+  bob.follow('alice')
+
+  while(tick(network)) ;
+
+  t.deepEqual(bob.store, alice.store)
+
+  isComplete(alice, 'alice', t)
+  isComplete(bob, 'bob', t)
+
   t.end()
 })
