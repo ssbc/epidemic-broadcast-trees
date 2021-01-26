@@ -52,7 +52,7 @@ module.exports = function (version) {
     if(remote == 0) return 0
     return Math.max(local, remote)
   }
-  
+
   //check if a feed is available from a peer apart from ignore_id
 
   function isAvailable(state, feed_id, ignore_id) {
