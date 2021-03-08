@@ -50,6 +50,7 @@ module.exports = function (version) {
     if(local == null) return remote
     if(local == -1 || remote == -1) return remote
     if(remote == 0) return 0
+    if(remote > 0 && local > 0 && remote < local) return remote
     return Math.max(local, remote)
   }
 
