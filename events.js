@@ -171,9 +171,9 @@ module.exports = function (version) {
     //create a replication for that peer.
 
     for(var id in state.follows) {
-      var seq = clock[id], lseq = state.clock[id] || 0
+      var seq = clock[id] || 0, lseq = state.clock[id] || 0
       //BLOCK: check wether id has blocked this peer
-      if(isShared(state, id, ev.id) && seq !== -1 && seq !== lseq) {
+      if(isShared(state, id, ev.id) && seq !== -1 && seq !== state.clock[id]) {
 
         //if we are already replicating, and this feed is at zero, ask for it anyway,
         //XXX if a feed is at zero, but we are replicating on another peer
