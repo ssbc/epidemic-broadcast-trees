@@ -207,6 +207,21 @@ test('replicate a hops=2 peer that my hops=1 friend still doesnt have', function
   t.end()
 })
 
+test('replicate a hops=2 peer that my hops=1 friend still doesnt have (2)', function (t) {
+  var state = events.initialize()
+  state = events.clock(state, {})
+
+  state = events.follow(state, {id: 'alice', value: true})
+  state = events.follow(state, {id: 'bob', value: true})
+
+  state = events.connect(state, {id: 'alice', client: false})
+  state = events.peerClock(state, {id: 'alice', value: {'alice': 0, 'bob': 0}})
+
+  t.ok(state.peers['alice'].replicating['bob'])
+
+  t.end()
+})
+
 test('reply to any clock they send, 1', function (t) {
   var state = {
     clock: { alice: 3, bob: 2, charles: 3 },
