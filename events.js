@@ -184,9 +184,9 @@ module.exports = function (version) {
           tx: false,
           rx: !replicating,
           sent: null,
-          requested: state.clock[id]
+          requested: lseq
         }
-        setNotes(peer, id, state.clock[id] || 0, !replicating)
+        setNotes(peer, id, lseq, !replicating)
       }
     }
 
