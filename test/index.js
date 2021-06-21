@@ -192,6 +192,21 @@ test('connect to two peers, append message one send, one note', function (t) {
 
 })
 
+test('replicate a hops=2 peer that my hops=1 friend still doesnt have', function (t) {
+  var state = events.initialize()
+  state = events.clock(state, {})
+
+  state = events.connect(state, {id: 'alice', client: false})
+  state = events.peerClock(state, {id: 'alice', value: {'alice': 1, 'bob': 0}})
+
+  state = events.follow(state, {id: 'alice', value: true})
+  state = events.follow(state, {id: 'bob', value: true})
+
+  t.ok(state.peers['alice'].replicating['bob'])
+
+  t.end()
+})
+
 test('reply to any clock they send, 1', function (t) {
   var state = {
     clock: { alice: 3, bob: 2, charles: 3 },
@@ -356,7 +371,7 @@ test('connects in sync then another message', function (t) {
 
   state = events.append(state, {author: 'alice', sequence: 4, content: {}})
   t.deepEqual(state.peers.bob.notes, {alice: note(4, false)})
-  
+
   t.end()
 })
 
