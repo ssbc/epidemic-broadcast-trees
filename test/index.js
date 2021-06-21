@@ -197,7 +197,7 @@ test('replicate a hops=2 peer that my hops=1 friend still doesnt have', function
   state = events.clock(state, {})
 
   state = events.connect(state, {id: 'alice', client: false})
-  state = events.peerClock(state, {id: 'alice', value: {'alice': 1, 'bob': 0}})
+  state = events.peerClock(state, {id: 'alice', value: {'alice': 0, 'bob': 0}})
 
   state = events.follow(state, {id: 'alice', value: true})
   state = events.follow(state, {id: 'bob', value: true})
