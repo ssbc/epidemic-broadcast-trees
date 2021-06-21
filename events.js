@@ -43,7 +43,7 @@ module.exports = function (version) {
     }
     return false
   }
-  
+
   // lower numbers should be respected
   // if one is -1 and the other is not, use the other
   function fixSeq (local, remote) {
@@ -184,9 +184,9 @@ module.exports = function (version) {
           tx: false,
           rx: !replicating,
           sent: null,
-          requested: state.clock[id]
+          requested: lseq
         }
-        setNotes(peer, id, state.clock[id] || 0, !replicating)
+        setNotes(peer, id, lseq, !replicating)
       }
     }
 
@@ -210,14 +210,14 @@ module.exports = function (version) {
         //  do have feed
         //  peer has feed
         //  peer rejects feed
-        var seq = peer.clock[ev.id], lseq = state.clock[ev.id] || 0
+        var seq = peer.clock[ev.id] || 0, lseq = state.clock[ev.id] || 0
         if(seq === -1) {
           //peer explicitly does not replicate this feed, don't ask for it.
         }
         else if(ev.value === false) { //unfollow
           setNotes(peer, ev.id, -1, false)
         }
-        else if(ev.value === true && seq != lseq) {
+        else if(ev.value === true && seq !== state.clock[ev.id]) {
           peer.replicating[ev.id] = {
             rx: true, tx: false,
             sent: -1, requested: lseq
