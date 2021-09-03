@@ -55,23 +55,33 @@ module.exports = function (opts) {
       self.state = events.block(self.state, {id: id, target: target, value: value !== false, ts: timestamp()})
       self.update()
     },
-    createStream: function (remote_id, version, client) {
-      if(this.streams[remote_id])
-        this.streams[remote_id].end(new Error('reconnected to peer'))
-      if(this.logging) console.log('EBT:conn', remote_id)
-      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
-        opts.setClock(remote_id, peerState.clock)
-      })
+    createStream: function (remoteId, version, format, client) {
+      if (version === 3) {
+        client = format
+        format = 'classic'
+      }
 
-      if(opts.isFeed)
+      const streamsId = remoteId+format
+
+      if (this.streams[streamsId])
+        this.streams[remoteId].end(new Error('reconnected to peer'))
+      if (this.logging) console.log('EBT:conn', remoteId)
+
+      let stream = new Stream(this, remoteId, version, client, opts.isMsg, function (peerState) {
+        opts.setClock(remoteId, peerState.clock)
+      })
+      this.streams[streamsId] = stream
+
+      if (opts.isFeed)
         stream._validate = createValidate(opts.isFeed)
 
-      opts.getClock(remote_id, function (err, clock) {
+      opts.getClock(remoteId, function (err, clock) {
         //check if peer exists in state, because we may
         //have disconect in the meantime
-        if(self.state.peers[remote_id])
+        if(self.state.peers[remoteId])
           stream.clock(err ? {} : clock)
       })
+
       return stream
     },
     _retrive: function (err, msg) {
