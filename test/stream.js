@@ -94,23 +94,7 @@ test('a<->b,b', function (t) {
 
   t.deepEqual(alice.store, bob.store)
 
-  var bs2 = bob.createStream('alice', 2, true)
-  var as2 = alice.createStream('bob', 2, false)
-
-  as2.pipe(bs2).pipe(as2)
-
-  bob.append({author: 'bob', sequence: 2, content: 'hello2'}, function () {})
-
-  t.throws(function () {
-    as.write({alice: -1, bob: -2})
-  })
-  t.equal(as.ended, true)
-  t.equal(bs.ended, true)
-
-  t.deepEqual(alice.store, bob.store)
-
   t.end()
-
 })
 
 
@@ -129,8 +113,8 @@ test('a3<->b3<->c2', function (t) {
 
   var as3 = alice.createStream('bob', 3, true)
   var bs3 = bob.createStream('alice', 3, false)
-  var bs2 = bob.createStream('charles', 2, false)
-  var cs2 = charles.createStream('bob', 2, true)
+  var bs2 = bob.createStream('charles', 3, false)
+  var cs2 = charles.createStream('bob', 3, true)
 
   console.log('initial.alice:',alice.progress())
   console.log('initial.bob  :',bob.progress())
