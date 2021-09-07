@@ -6,22 +6,6 @@ function timestamp () {
   return Date.now()
 }
 
-// Returns a function that removes keys from `clock` where `!isFeed(key)`.
-function createValidate (isFeed) {
-  return function (clock) {
-    for(var outerKey in clock) {
-      if(!isFeed(outerKey)) {
-        var _clock = {}
-        for(var innerKey in clock) {
-          if(isFeed(innerKey)) _clock[innerKey] = clock[innerKey]
-        }
-        return _clock
-      }
-    }
-    return clock
-  }
-}
-
 module.exports = function (opts) {
   var state = events.initialize(opts.id, opts.getMsgAuthor, opts.getMsgSequence)
   state.timeout = opts.timeout || 3000
@@ -62,9 +46,6 @@ module.exports = function (opts) {
       var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
-
-      if(opts.isFeed)
-        stream._validate = createValidate(opts.isFeed)
 
       opts.getClock(remote_id, function (err, clock) {
         //check if peer exists in state, because we may
