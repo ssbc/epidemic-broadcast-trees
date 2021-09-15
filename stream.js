@@ -31,7 +31,12 @@ module.exports = function (events) {
   }
 
   EBTStream.prototype.write = function (data) {
-    if(this.peer.logging) console.log("EBT:recv", JSON.stringify(data, null, 2))
+    if(this.peer.logging) {
+      if (Buffer.isBuffer(data))
+        console.log("EBT:recv binary (" + this.peer.id + ")", "0x" + data.toString('hex'))
+      else
+        console.log("EBT:recv (" + this.peer.id + ")", JSON.stringify(data, null, 2))
+    }
     if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
     if(this.isMsg(data)) {
       this.peer.state = events.receive(this.peer.state, {
@@ -89,7 +94,12 @@ module.exports = function (events) {
       if(state.blocked)
         this.end()
       else if(state.msgs.length) {
-        if(this.peer.logging) console.log("EBT:send", JSON.stringify(state.msgs[0], null, 2))
+        if(this.peer.logging) {
+          if (Buffer.isBuffer(state.msgs[0]))
+            console.log("EBT:send binary (" + this.peer.id + ")", "0x" + state.msgs[0].toString('hex'))
+          else
+            console.log("EBT:send (" + this.peer.id + ")", JSON.stringify(state.msgs[0], null, 2))
+        }
         this.sink.write(state.msgs.shift())
       }
       else {
