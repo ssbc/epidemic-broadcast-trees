@@ -1,12 +1,16 @@
-var events = require('./events')(require('./v3'))
-var Stream = require('./stream')(events)
-var progress = require('./progress')
+const Events = require('./events')
+const v3 = require('./v3')
+const StreamModule = require('./stream')
+const progress = require('./progress')
 
 function timestamp () {
   return Date.now()
 }
 
 module.exports = function (opts) {
+  const events = Events(v3)
+  const Stream = StreamModule(events)
+
   var state = events.initialize(opts.id, opts.getMsgAuthor, opts.getMsgSequence)
   state.timeout = opts.timeout || 3000
   state.clock = {}
