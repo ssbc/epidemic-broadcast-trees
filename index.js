@@ -44,10 +44,10 @@ module.exports = function (opts) {
       self.update()
     },
     createStream: function (remote_id, version, client) {
-      if(this.streams[remote_id])
-        this.streams[remote_id].end(new Error('reconnected to peer'))
-      if(this.logging) console.log('EBT:conn', remote_id)
-      var stream = this.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
+      if(self.streams[remote_id])
+        self.streams[remote_id].end(new Error('reconnected to peer'))
+      if(self.logging) console.log('EBT:conn', remote_id)
+      var stream = self.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
         opts.setClock(remote_id, peerState.clock)
       })
 
@@ -79,29 +79,29 @@ module.exports = function (opts) {
       //TODO: respond to back pressure from streams to each peer.
       //if a given stream is paused, don't retrive more msgs
       //for that peer/stream.
-      for(var peer in this.state.peers) {
-        var state = this.state.peers[peer]
+      for(var peer in self.state.peers) {
+        var state = self.state.peers[peer]
         while(state.retrive.length) {
           var id = state.retrive.shift()
           if(state.replicating[id])
             opts.getAt({
               id: id,
               sequence:state.replicating[id].sent+1
-            }, this._retrive)
+            }, self._retrive)
         }
       }
-      if(this.state.receive.length) {
-        var ev = this.state.receive.shift()
+      if(self.state.receive.length) {
+        var ev = self.state.receive.shift()
         opts.append(ev.value, function (err) {
           if(err) {
-            if(this.logging) console.error('EBT:err', err)
+            if(self.logging) console.error('EBT:err', err)
             self.block(ev.value.author, ev.id, true)
           }
           else self.onAppend(ev.value)
         })
       }
-      for(var k in this.streams)
-        this.streams[k].resume()
+      for(var k in self.streams)
+        self.streams[k].resume()
     },
   }
 
