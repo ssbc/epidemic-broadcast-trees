@@ -1,7 +1,7 @@
 {
   "name": "epidemic-broadcast-trees",
   "description": "bandwidth efficient broadcast gossip",
-  "version": "8.0.7",
+  "version": "8.0.8",
   "homepage": "https://github.com/dominictarr/epidemic-broadcast-trees",
   "repository": {
     "type": "git",
