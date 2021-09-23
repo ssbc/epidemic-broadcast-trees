@@ -1,3 +1,5 @@
+const v3 = require('./v3')
+
 module.exports = function (events) {
   function timestamp () {
     return Date.now()
@@ -35,7 +37,7 @@ module.exports = function (events) {
       if (Buffer.isBuffer(data))
         console.log("EBT:recv binary (" + this.peer.id + ")", "0x" + data.toString('hex'))
       else
-        console.log("EBT:recv (" + this.peer.id + ")", JSON.stringify(data, null, 2))
+        console.log("EBT:recv json (" + this.peer.id + ")", JSON.stringify(data, null, 2))
     }
     if(this.ended) throw new Error('write after ebt stream ended:'+this.remote)
     if(this.isMsg(data)) {
@@ -98,14 +100,25 @@ module.exports = function (events) {
           if (Buffer.isBuffer(state.msgs[0]))
             console.log("EBT:send binary (" + this.peer.id + ")", "0x" + state.msgs[0].toString('hex'))
           else
-            console.log("EBT:send (" + this.peer.id + ")", JSON.stringify(state.msgs[0], null, 2))
+            console.log("EBT:send json (" + this.peer.id + ")", JSON.stringify(state.msgs[0], null, 2))
         }
         this.sink.write(state.msgs.shift())
       }
       else {
         var notes = state.notes
         state.notes = null
-        if(this.peer.logging) console.log("EBT:send (" + this.peer.id + ")", notes)
+        if(this.peer.logging) {
+          const formattedNotes = {}
+          for (let feed in notes) {
+            const seq = notes[feed]
+            formattedNotes[feed] = {
+              seq,
+              sequence: v3.getSequence(seq),
+              rx: v3.getReceive(seq)
+            }
+          }
+          console.log("EBT:send notes (" + this.peer.id + ")", formattedNotes)
+        }
         this.sink.write(notes)
       }
     }
