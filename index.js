@@ -97,7 +97,6 @@ module.exports = function (opts) {
             if(self.logging) console.error('EBT:err', err)
             self.block(ev.value.author, ev.id, true)
           }
-          else self.onAppend(ev.value)
         })
       }
       for(var k in self.streams)
