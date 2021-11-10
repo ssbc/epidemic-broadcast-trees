@@ -44,18 +44,22 @@ module.exports = function (opts) {
       self.update()
     },
     createStream: function (remote_id, version, client) {
+      console.log("creating stream with remote", remote_id)
       if(self.streams[remote_id])
         self.streams[remote_id].end(new Error('reconnected to peer'))
       if(self.logging) console.log('EBT:conn', remote_id)
       var stream = self.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
+        console.log("setting clock for remote", remote_id, peerState.clock)
         opts.setClock(remote_id, peerState.clock)
       })
 
       opts.getClock(remote_id, function (err, clock) {
         //check if peer exists in state, because we may
         //have disconect in the meantime
-        if(self.state.peers[remote_id])
+        if(self.state.peers[remote_id]) {
+          console.log("getClock for remote", remote_id, clock)
           stream.clock(err ? {} : clock)
+        }
       })
       return stream
     },

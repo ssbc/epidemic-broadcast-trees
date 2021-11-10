@@ -213,11 +213,14 @@ module.exports = function (version) {
         var seq = peer.clock[ev.id] || 0, lseq = state.clock[ev.id] || 0
         if(seq === -1) {
           //peer explicitly does not replicate this feed, don't ask for it.
+          console.log("seq is -1")
         }
         else if(ev.value === false) { //unfollow
+          console.log("setting to -1 (unfollow)", peer, ev.id)
           setNotes(peer, ev.id, -1, false)
         }
         else if(ev.value === true && seq !== state.clock[ev.id]) {
+          console.log("setting notes to ", lseq, peer, ev.id)
           peer.replicating[ev.id] = {
             rx: true, tx: false,
             sent: -1, requested: lseq
@@ -370,8 +373,11 @@ module.exports = function (version) {
       //check if we are not following this feed.
       //BLOCK: or wether id has blocked this peer
       if(!isShared(state, id, ev.id)) {
-        if(!peer.replicating[id])
+        if(!peer.replicating[id]) {
+          console.log("setting notes to -1 inside notes", peer, id)
           setNotes(peer, id, -1)
+        } else
+          console.log("not setting notes to -1 inside notes", peer, id)
         peer.replicating[id] = {tx:false, rx:false, sent: -1, requested: -1}
       }
       else {
@@ -482,8 +488,10 @@ module.exports = function (version) {
     for(var id in state.peers) {
       var peer = state.peers[id]
       if(!peer.replicating) continue
-      if(id === ev.target && peer.replicating[ev.id])
+      if(id === ev.target && peer.replicating[ev.id]) {
+        console.log("blocking, settings notes -1", peer, ev.id)
         setNotes(peer, ev.id, -1, false)
+      }
     }
 
     return state
