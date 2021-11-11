@@ -370,7 +370,7 @@ module.exports = function (version) {
       //BLOCK: or wether id has blocked this peer
       if (!isShared(state, id, ev.id)) {
         if (!peer.replicating[id])
-          setNotes(peer, id, -1)
+          setNotes(peer, id, -1, false)
         peer.replicating[id] = {tx: false, rx: false, sent: -1, requested: -1}
       }
       else {
@@ -472,20 +472,20 @@ module.exports = function (version) {
     else {
       state.blocks[ev.id] = state.blocks[ev.id] || {}
       state.blocks[ev.id][ev.target] = true
-    }
 
-    //if we blocked this peer, and we are also connected to them.
-    //then stop replicating immediately.
-    if (state.id === ev.id && state.peers[ev.target]) {
-      //end replication immediately.
-      state.peers[ev.target].blocked = ev.value
-    }
+      //if we blocked this peer, and we are also connected to them.
+      //then stop replicating immediately.
+      if (state.id === ev.id && state.peers[ev.target]) {
+        //end replication immediately.
+        state.peers[ev.target].blocked = ev.value
+      }
 
-    for (var id in state.peers) {
-      var peer = state.peers[id]
-      if (!peer.replicating) continue
-      if (id === ev.target && peer.replicating[ev.id])
-        setNotes(peer, ev.id, -1, false)
+      for (var id in state.peers) {
+        var peer = state.peers[id]
+        if (!peer.replicating) continue
+        if (id === ev.target && peer.replicating[ev.id])
+          setNotes(peer, ev.id, -1, false)
+      }
     }
 
     return state

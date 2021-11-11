@@ -82,5 +82,24 @@ test("don't send retrived message to blocked peer", function (t) {
   t.end()
 })
 
+test("blocking false on a connected peer does nothing", function (t) {
+  var state = events.initialize('alice')
+  state.clock = {alice: 3, charles: 2}
+  state = events.connect(state, {id: 'charles', ts: 1, client: false})
+  //state = events.peerClock(state, {id: 'charles', value: { charles: 2 }})
+  state = events.peerClock(state, {id: 'charles', value: {'alice': 0, 'charles': 0}})
+
+  state = events.follow(state, {id: 'alice', value: true})
+  state = events.follow(state, {id: 'charles', value: true})
+
+  state = events.notes(state, {id: 'charles', value: {charles: 2}})
+  const existingNote = state.peers['charles'].notes['alice']
+  // this should not change anything
+  state = events.block(state, {id: 'alice', target: 'charles', value: false})
+  t.equal(state.peers['charles'].notes['alice'], existingNote)
+
+  t.end()
+})
+
 
 
