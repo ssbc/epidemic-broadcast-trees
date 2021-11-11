@@ -37,8 +37,8 @@ module.exports = function (version) {
 
         // for replicating the node must have replicated something not just rx
         // this fixed a partial replication bug where a node is unable to send the full log
-        var id_has_sent = peer.replicating && peer.replicating[id] && peer.replicating[id].sent != -1
-        if (peer.replicating && peer.replicating[feedId] && peer.replicating[feedId].rx && id_has_sent) return id
+        var idHasSent = peer.replicating && peer.replicating[id] && peer.replicating[id].sent != -1
+        if (peer.replicating && peer.replicating[feedId] && peer.replicating[feedId].rx && idHasSent) return id
       }
     }
     return false
@@ -78,7 +78,7 @@ module.exports = function (version) {
     if (!~i) return
     //start at 1 because we want to visit all keys but key.
     for (var j = 1; j < keys.length; j++)
-      if (iter(keys[(j+i)%keys.length], j))
+      if (iter(keys[(j+i) % keys.length], j))
         return
   }
 
@@ -234,7 +234,7 @@ module.exports = function (version) {
     //check if any peer requires this msg
     for (var id in state.peers) {
       var peer = state.peers[id]
-      if (!peer.replicating) continue;
+      if (!peer.replicating) continue
       //BLOCK: check wether id has blocked this peer
       const author = exports.getMsgAuthor(msg)
       const sequence = exports.getMsgSequence(msg)
@@ -335,7 +335,6 @@ module.exports = function (version) {
     return state
   }
 
-
   //XXX check if we are already receiving a feed
   //and if so put this into lazy mode.
   exports.notes = function (state, ev) {
@@ -372,7 +371,7 @@ module.exports = function (version) {
       if (!isShared(state, id, ev.id)) {
         if (!peer.replicating[id])
           setNotes(peer, id, -1)
-        peer.replicating[id] = {tx:false, rx:false, sent: -1, requested: -1}
+        peer.replicating[id] = {tx: false, rx: false, sent: -1, requested: -1}
       }
       else {
         var rep = peer.replicating[id]

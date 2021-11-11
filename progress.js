@@ -8,28 +8,28 @@
 */
 
 module.exports = function (state) {
-  var prog = {start:0, current: 0, target: 0}
-  for(var peer_id in state.peers) {
+  var prog = { start: 0, current: 0, target: 0 }
+  for (var peer_id in state.peers) {
     var peer = state.peers[peer_id]
 
-    for(var feed_id in peer.replicating) {
+    for (var feed_id in peer.replicating) {
       var rep = peer.replicating[feed_id]
       //progress for sending initial note
       prog.target++
-      if(rep.sent != null) prog.current++
+      if (rep.sent != null) prog.current++
 
       prog.target++
-      if(rep.requested != null) prog.current++
+      if (rep.requested != null) prog.current++
 
       var seq = peer.clock[feed_id]
       var lseq = state.clock[feed_id] || 0
 
-      if(rep.rx && rep.requested != null && rep.requested > -1 && lseq < seq) {
+      if (rep.rx && rep.requested != null && rep.requested > -1 && lseq < seq) {
         prog.current += lseq - rep.requested
         prog.target += seq - rep.requested
       }
 
-      if(rep.tx && seq > -1 && seq < lseq) {
+      if (rep.tx && seq > -1 && seq < lseq) {
         prog.current += rep.sent - seq
         prog.target += lseq - seq
       }
