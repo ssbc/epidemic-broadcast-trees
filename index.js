@@ -31,40 +31,42 @@ module.exports = function (opts) {
       return progress(state)
     },
     request: function (id, follows) {
-      if(opts.isFeed && !opts.isFeed(id)) return
+      if (opts.isFeed && !opts.isFeed(id)) return
       self.state = events.follow(self.state, {id: id, value: follows !== false, ts: timestamp()})
       self.update()
     },
     pause: function (id, paused) {
-      self.state = events.pause(self.state, {id: id, paused: paused !== false})
+      self.state = events.pause(self.state, {id, paused: paused !== false})
       self.update()
     },
     block: function (id, target, value) {
-      self.state = events.block(self.state, {id: id, target: target, value: value !== false, ts: timestamp()})
+      self.state = events.block(self.state, {id, target, value: value !== false, ts: timestamp()})
       self.update()
     },
-    createStream: function (remote_id, version, client) {
-      if(self.streams[remote_id])
-        self.streams[remote_id].end(new Error('reconnected to peer'))
-      if(self.logging) console.log('EBT:conn', remote_id)
-      var stream = self.streams[remote_id] = new Stream(this, remote_id, version, client, opts.isMsg, function (peerState) {
-        opts.setClock(remote_id, peerState.clock)
-      })
+    createStream: function (remoteId, version, client) {
+      if (self.streams[remoteId])
+        self.streams[remoteId].end(new Error('reconnected to peer'))
+      if (self.logging) console.log('EBT:conn', remoteId)
+      function onClose(peerState) {
+        opts.setClock(remoteId, peerState.clock)
+      }
+      var stream = new Stream(this, remoteId, version, client, opts.isMsg, onClose)
+      self.streams[remoteId] = stream
 
-      opts.getClock(remote_id, function (err, clock) {
+      opts.getClock(remoteId, (err, clock) => {
         //check if peer exists in state, because we may
         //have disconect in the meantime
-        if(self.state.peers[remote_id])
+        if (self.state.peers[remoteId])
           stream.clock(err ? {} : clock)
       })
+
       return stream
     },
     _retrive: function (err, msg) {
-      if(msg) {
+      if (msg) {
         self.state = events.retrive(self.state, msg)
         self.update()
-      }
-      else {
+      } else {
         //this should never happen.
         //replication for this feed is in bad state now.
         console.log('could not retrive msg:', err)
@@ -79,36 +81,38 @@ module.exports = function (opts) {
       //TODO: respond to back pressure from streams to each peer.
       //if a given stream is paused, don't retrive more msgs
       //for that peer/stream.
-      for(var peer in self.state.peers) {
+      for (var peer in self.state.peers) {
         var state = self.state.peers[peer]
-        while(state.retrive.length) {
+        while (state.retrive.length) {
           var id = state.retrive.shift()
-          if(state.replicating[id])
+          if (state.replicating[id])
             opts.getAt({
-              id: id,
-              sequence:state.replicating[id].sent+1
+              id,
+              sequence: state.replicating[id].sent+1
             }, self._retrive)
         }
       }
-      if(self.state.receive.length) {
+
+      if (self.state.receive.length) {
         var ev = self.state.receive.shift()
         opts.append(ev.value, function (err) {
-          if(err) {
-            if(self.logging) console.error('EBT:err', err)
+          if (err) {
+            if (self.logging) console.error('EBT:err', err)
             self.block(ev.value.author, ev.id, true)
           }
         })
       }
-      for(var k in self.streams)
+
+      for (var k in self.streams)
         self.streams[k].resume()
     },
   }
 
-  var int = setInterval(function () {
+  var int = setInterval(() => {
     self.state = events.timeout(self.state, {ts: timestamp()})
     self.update()
   }, state.timeout)
-  if(int.unref) int.unref()
+  if (int.unref) int.unref()
 
   return self
 }
