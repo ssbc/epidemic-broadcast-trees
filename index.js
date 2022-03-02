@@ -45,7 +45,7 @@ module.exports = function (opts) {
     },
     createStream: function (remoteId, version, client) {
       if (self.streams[remoteId])
-        self.streams[remoteId].end(new Error('reconnected to peer'))
+        self.streams[remoteId].end({name: 'Error', message: 'reconnected to peer', stack: ''})
       if (self.logging) console.log('EBT:conn', remoteId)
       function onClose(peerState) {
         opts.setClock(remoteId, peerState.clock)
