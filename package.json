@@ -7,6 +7,10 @@
     "type": "git",
     "url": "git://github.com/dominictarr/epidemic-broadcast-trees.git"
   },
+  "scripts": {
+    "test": "tape test/*.js | tap-arc",
+    "lint": "standard --fix"
+  },
   "dependencies": {
     "push-stream": "^11.0.0"
   },
@@ -14,11 +18,8 @@
     "bipf": "^1.3.0",
     "rng": "^0.2.2",
     "standard": "^17.0.0",
+    "tap-arc": "^0.3.5",
     "tape": "^4.6.3"
-  },
-  "scripts": {
-    "test": "set -e; for t in test/*.js; do node $t; done",
-    "lint": "standard --fix"
   },
   "author": "'Dominic Tarr' <dominic.tarr@gmail.com> (http://dominictarr.com)",
   "license": "MIT"
