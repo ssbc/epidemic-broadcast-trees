@@ -120,7 +120,7 @@ module.exports = function (events) {
     state = events.append(state, { author: 'bob', sequence: 3, content: {} })
 
     state = events.peerClock(state, { id: 'alice', value: {} })
-    // TODO does this test anything?
+    // TODO > does this test anything?
     t.end()
   })
 

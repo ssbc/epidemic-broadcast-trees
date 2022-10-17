@@ -24,10 +24,12 @@ module.exports = function (seed, _log, _events) {
 
   function createPeer (id, validate) {
     validate = validate || function () {}
-    let store = {}; let state = events.initialize(id); let self
+    let store = {}
+    let state = events.initialize(id)
     let ts = 0
     const pClock = {}
-    return self = {
+
+    const self = {
       id,
       clocks: pClock,
       store,
@@ -64,6 +66,8 @@ module.exports = function (seed, _log, _events) {
         }
       }
     }
+
+    return self
   }
 
   function shuffle (ary) {
@@ -105,7 +109,8 @@ module.exports = function (seed, _log, _events) {
             try {
               peer.append(ev.value)
             } catch (err) {
-              return peer.state = events.block(peer.state, { id: ev.value.author, target: ev.id, value: true })
+              peer.state = events.block(peer.state, { id: ev.value.author, target: ev.id, value: true })
+              return peer.state
             }
             return true
           }
@@ -162,13 +167,15 @@ module.exports = function (seed, _log, _events) {
   tick.log = function () {
     console.log(
       tick.output.map(function (e) {
-        if (e.msg) { return e.from + '>' + e.to + ':' + e.value.author[0] + e.value.sequence } else { return e.from + '>' + e.to + ':' + JSON.stringify(e.value) }
+        if (e.msg) return e.from + '>' + e.to + ':' + e.value.author[0] + e.value.sequence
+        else return e.from + '>' + e.to + ':' + JSON.stringify(e.value)
       }).join('\n')
     )
   }
 
   tick.ts = function (_ts) {
-    return ts += (_ts | 0)
+    ts += (_ts | 0)
+    return ts
   }
 
   tick.run = function (network) {
