@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /*
   better progress algorithm:
 
@@ -8,21 +9,21 @@
 */
 
 module.exports = function (state) {
-  var prog = { start: 0, current: 0, target: 0 }
-  for (var peer_id in state.peers) {
-    var peer = state.peers[peer_id]
+  const prog = { start: 0, current: 0, target: 0 }
+  for (const peer_id in state.peers) {
+    const peer = state.peers[peer_id]
 
-    for (var feed_id in peer.replicating) {
-      var rep = peer.replicating[feed_id]
-      //progress for sending initial note
+    for (const feed_id in peer.replicating) {
+      const rep = peer.replicating[feed_id]
+      // progress for sending initial note
       prog.target++
       if (rep.sent != null) prog.current++
 
       prog.target++
       if (rep.requested != null) prog.current++
 
-      var seq = peer.clock[feed_id]
-      var lseq = state.clock[feed_id] || 0
+      const seq = peer.clock[feed_id]
+      const lseq = state.clock[feed_id] || 0
 
       if (rep.rx && rep.requested != null && rep.requested > -1 && lseq < seq) {
         prog.current += lseq - rep.requested

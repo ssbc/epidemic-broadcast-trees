@@ -1,26 +1,27 @@
 
-var createSimulator = require('./simulator')
-var _events = require('../events')(require('./options'))
-var test = require('tape')
-var progress = require('../progress')
-var events = {}
-for(var k in _events) (function (fn, k) {
-  events[k] = function (state, ev) {
-    if(state.stalled) return state
-    return fn(state, ev)
-  }
-})(_events[k], k)
-
+const createSimulator = require('./simulator')
+const _events = require('../events')(require('./options'))
+const test = require('tape')
+const progress = require('../progress')
+const events = {}
+for (const k in _events) {
+  (function (fn, k) {
+    events[k] = function (state, ev) {
+      if (state.stalled) return state
+      return fn(state, ev)
+    }
+  })(_events[k], k)
+}
 
 function createTest (seed, log) {
-  test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log)
+  test('simple test with seed:' + seed, function (t) {
+    const tick = createSimulator(seed, log)
 
-    var network = {}
-    var alice = network['alice'] = tick.createPeer('alice')
-    var bob = network['bob'] = tick.createPeer('bob')
-    var carl = network['carl'] = tick.createPeer('carl')
-    var dawn = network['dawn'] = tick.createPeer('dawn')
+    const network = {}
+    const alice = network.alice = tick.createPeer('alice')
+    const bob = network.bob = tick.createPeer('bob')
+    const carl = network.carl = tick.createPeer('carl')
+    const dawn = network.dawn = tick.createPeer('dawn')
 
     alice.state.timeout = bob.state.timeout = dawn.state.timeout = 2
     alice.init({})
@@ -28,10 +29,10 @@ function createTest (seed, log) {
     carl.init({})
     dawn.init({})
 
-    alice.append({author: 'alice', sequence: 1, content: {}})
-    alice.append({author: 'alice', sequence: 2, content: {}})
-    alice.append({author: 'alice', sequence: 3, content: {}})
-    bob.append({author: 'bob', sequence: 1, content: {}})
+    alice.append({ author: 'alice', sequence: 1, content: {} })
+    alice.append({ author: 'alice', sequence: 2, content: {} })
+    alice.append({ author: 'alice', sequence: 3, content: {} })
+    bob.append({ author: 'bob', sequence: 1, content: {} })
 
     alice.follow('alice')
     alice.follow('bob')
@@ -49,14 +50,13 @@ function createTest (seed, log) {
     dawn.connect(bob)
 
     tick.run(network)
-//    carl.state.stalled = true
+    //    carl.state.stalled = true
 
-//    alice.disconnect(carl)
+    //    alice.disconnect(carl)
     bob.disconnect(carl)
-//    dawn.disconnect(carl)
+    //    dawn.disconnect(carl)
 
-    alice.append({author: 'alice', sequence: 4, content: {}})
-
+    alice.append({ author: 'alice', sequence: 4, content: {} })
 
     tick.run(network)
 
@@ -64,8 +64,8 @@ function createTest (seed, log) {
     t.deepEqual(bob.store, alice.store, 'bob matches alice')
 
     function isComplete (peer, name) {
-      var prog = progress(peer.state)
-      t.equal(prog.current, prog.target, name +' is complete')
+      const prog = progress(peer.state)
+      t.equal(prog.current, prog.target, name + ' is complete')
     }
 
     isComplete(alice, 'alice')
@@ -76,7 +76,5 @@ function createTest (seed, log) {
   })
 }
 
-var seed = process.argv[2]
-if(isNaN(seed))
-  for(var i = 0; i < 100; i++) createTest(i)
-else createTest(+seed, true)
+const seed = process.argv[2]
+if (isNaN(seed)) { for (let i = 0; i < 100; i++) createTest(i) } else createTest(+seed, true)
