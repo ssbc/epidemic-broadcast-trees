@@ -1,7 +1,7 @@
-var createSimulator = require('./simulator')
-var options = require('./options')
-var progress = require('../progress')
-var test = require('tape')
+const createSimulator = require('./simulator')
+const options = require('./options')
+const progress = require('../progress')
+const test = require('tape')
 
 function count (output) {
   return output.reduce(function (a, b) {
@@ -11,33 +11,32 @@ function count (output) {
 
 function flatten (output) {
   return output.reduce(function (a, b) {
-    if(b.msg) return a
-    for(var k in b.value)
-      a[b.from][k] = options.getSequence(b.value[k])
+    if (b.msg) return a
+    for (const k in b.value) { a[b.from][k] = options.getSequence(b.value[k]) }
     return a
-  }, {alice: {}, bob: {}})
+  }, { alice: {}, bob: {} })
 }
 
 function isComplete (peer, name, t) {
-  var prog = progress(peer.state)
-  t.equal(prog.current, prog.target, name +' is complete')
+  const prog = progress(peer.state)
+  t.equal(prog.current, prog.target, name + ' is complete')
 }
 
 test('loose local state', function (t) {
-  var tick = createSimulator(0, true, options)
+  const tick = createSimulator(0, true, options)
 
-  var network = {}
-  var alice = network['alice'] = tick.createPeer('alice')
-  var bob = network['bob'] = tick.createPeer('bob')
+  const network = {}
+  const alice = network.alice = tick.createPeer('alice')
+  let bob = network.bob = tick.createPeer('bob')
 
   alice.init({})
   bob.init({})
 
-  alice.append({author: 'alice', sequence: 1, content: {}})
-  alice.append({author: 'alice', sequence: 2, content: {}})
-  alice.append({author: 'alice', sequence: 3, content: {}})
-  bob.append({author: 'bob', sequence: 1, content: {}})
-  bob.append({author: 'bob', sequence: 2, content: {}})
+  alice.append({ author: 'alice', sequence: 1, content: {} })
+  alice.append({ author: 'alice', sequence: 2, content: {} })
+  alice.append({ author: 'alice', sequence: 3, content: {} })
+  bob.append({ author: 'bob', sequence: 1, content: {} })
+  bob.append({ author: 'bob', sequence: 2, content: {} })
 
   alice.follow('bob')
   alice.follow('alice')
@@ -46,12 +45,12 @@ test('loose local state', function (t) {
 
   alice.connect(bob)
 
-  while(tick(network)) ;
+  while (tick(network)) ;
 
   alice.disconnect(bob)
 
-  //should have set up peer.replicatings to tx/rx alice
-  t.deepEqual(flatten(tick.output), {alice: {alice: 3, bob: 0}, bob: {alice: 0, bob: 2}})
+  // should have set up peer.replicatings to tx/rx alice
+  t.deepEqual(flatten(tick.output), { alice: { alice: 3, bob: 0 }, bob: { alice: 0, bob: 2 } })
   t.equal(count(tick.output), 2)
 
   t.deepEqual(bob.store, alice.store)
@@ -59,10 +58,10 @@ test('loose local state', function (t) {
   isComplete(alice, 'alice', t)
   isComplete(bob, 'bob', t)
 
-  console.log("===========START OVER===========")
+  console.log('===========START OVER===========')
 
   // bob gets a brick in his head and forgets everything
-  bob = network['bob'] = tick.createPeer('bob')
+  bob = network.bob = tick.createPeer('bob')
   bob.init({})
   t.deepEqual(bob.store, {})
 
@@ -70,14 +69,14 @@ test('loose local state', function (t) {
 
   alice.connect(bob)
 
-  while(tick(network)) ;
+  while (tick(network)) ;
 
-  console.log("===========SECOND ROUND===========")
+  console.log('===========SECOND ROUND===========')
 
   // simulate a contact message received in bobs feed
   bob.follow('alice')
 
-  while(tick(network)) ;
+  while (tick(network)) ;
 
   t.deepEqual(bob.store, alice.store)
 
@@ -86,26 +85,26 @@ test('loose local state', function (t) {
 
   alice.disconnect(bob)
 
-  console.log("===========START OVER 2===========")
+  console.log('===========START OVER 2===========')
 
   // bob gets a brick in his head and restores from backup
-  bob = network['bob'] = tick.createPeer('bob')
+  bob = network.bob = tick.createPeer('bob')
   bob.init({})
 
-  bob.append({author: 'bob', sequence: 1, content: {}})
+  bob.append({ author: 'bob', sequence: 1, content: {} })
 
   bob.follow('bob')
 
   alice.connect(bob)
 
-  while(tick(network)) ;
+  while (tick(network)) ;
 
-  console.log("===========SECOND ROUND===========")
+  console.log('===========SECOND ROUND===========')
 
   // simulate a contact message received in bobs feed
   bob.follow('alice')
 
-  while(tick(network)) ;
+  while (tick(network)) ;
 
   t.deepEqual(bob.store, alice.store)
 

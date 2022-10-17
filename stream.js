@@ -6,14 +6,14 @@ module.exports = function (events) {
   }
 
   function EBTStream (peer, remote, version, client, isMsg, onClose) {
-    this.paused = true //start out paused
+    this.paused = true // start out paused
     this.remote = remote
     this.peer = peer
     this.version = version
     this.peer.state = events.connect(this.peer.state, {
       id: remote,
       ts: timestamp(),
-      client: client
+      client
     })
     this.ended = false
     this._onClose = onClose
@@ -34,13 +34,10 @@ module.exports = function (events) {
 
   EBTStream.prototype.write = function (data) {
     if (this.peer.logging) {
-      if (Buffer.isBuffer(data))
-        console.log("EBT:recv binary (" + this.peer.id + ")", "0x" + data.toString('hex'))
-      else
-        console.log("EBT:recv json (" + this.peer.id + ")", JSON.stringify(data, null, 2))
+      if (Buffer.isBuffer(data)) { console.log('EBT:recv binary (' + this.peer.id + ')', '0x' + data.toString('hex')) } else { console.log('EBT:recv json (' + this.peer.id + ')', JSON.stringify(data, null, 2)) }
     }
 
-    if (this.ended) throw new Error('write after ebt stream ended:'+this.remote)
+    if (this.ended) throw new Error('write after ebt stream ended:' + this.remote)
 
     if (this.isMsg(data)) {
       this.peer.state = events.receive(this.peer.state, {
@@ -61,57 +58,57 @@ module.exports = function (events) {
 
   EBTStream.prototype.abort = EBTStream.prototype.end = function (err) {
     this.ended = true
-    //check if we have already ended
+    // check if we have already ended
     if (!this.peer.state.peers[this.remote]) return
 
     if (this.peer.logging) console.log('EBT:dcon', this.remote)
 
-    var peerState = this.peer.state.peers[this.remote]
+    const peerState = this.peer.state.peers[this.remote]
     this.peer.state = events.disconnect(this.peer.state, {
       id: this.remote,
       ts: timestamp()
     })
     if (this._onClose) this._onClose(peerState)
-    //remove from the peer...
+    // remove from the peer...
     delete this.peer.streams[this.remote]
     if (this.source && !this.source.ended) this.source.abort(err)
     if (this.sink && !this.sink.ended) this.sink.end(err)
   }
 
   EBTStream.prototype.canSend = function () {
-    var state = this.peer.state.peers[this.remote]
+    const state = this.peer.state.peers[this.remote]
     return (
       this.sink &&
-        !this.sink.paused &&
-        !this.ended && (
-          //missing state means this peer was blocked,
-          //end immediately.
-          state.blocked || state.msgs.length || state.notes
-        )
+      !this.sink.paused &&
+      !this.ended &&
+      // missing state means this peer was blocked,
+      // end immediately.
+      (state.blocked || state.msgs.length || state.notes)
     )
   }
 
   EBTStream.prototype.resume = function () {
     if (!this.sink || this.sink.paused) return
 
-    var state = this.peer.state.peers[this.remote]
+    const state = this.peer.state.peers[this.remote]
     while (this.canSend()) {
       if (state.blocked) {
         this.end()
       } else if (state.msgs.length) {
         if (this.peer.logging) {
-          if (Buffer.isBuffer(state.msgs[0]))
-            console.log("EBT:send binary (" + this.peer.id + ")", "0x" + state.msgs[0].toString('hex'))
-          else
-            console.log("EBT:send json (" + this.peer.id + ")", JSON.stringify(state.msgs[0], null, 2))
+          if (Buffer.isBuffer(state.msgs[0])) {
+            console.log('EBT:send binary (' + this.peer.id + ')', '0x' + state.msgs[0].toString('hex'))
+          } else {
+            console.log('EBT:send json (' + this.peer.id + ')', JSON.stringify(state.msgs[0], null, 2))
+          }
         }
         this.sink.write(state.msgs.shift())
       } else {
-        var notes = state.notes
+        const notes = state.notes
         state.notes = null
         if (this.peer.logging) {
           const formattedNotes = {}
-          for (let feed in notes) {
+          for (const feed in notes) {
             const seq = notes[feed]
             formattedNotes[feed] = {
               seq,
@@ -119,7 +116,7 @@ module.exports = function (events) {
               rx: v3.getReceive(seq)
             }
           }
-          console.log("EBT:send notes (" + this.peer.id + ")", formattedNotes)
+          console.log('EBT:send notes (' + this.peer.id + ')', formattedNotes)
         }
         this.sink.write(notes)
       }

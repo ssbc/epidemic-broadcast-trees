@@ -1,26 +1,26 @@
 
-var createSimulator = require('./simulator')
-var options = require('./options')
-var progress = require('../progress')
+const createSimulator = require('./simulator')
+const options = require('./options')
+const progress = require('../progress')
 
-var test = require('tape')
+const test = require('tape')
 
 function createTest (seed, log) {
-  test('simple test with seed:'+seed, function (t) {
-    var tick = createSimulator(seed, log, options)
+  test('simple test with seed:' + seed, function (t) {
+    const tick = createSimulator(seed, log, options)
 
-    var network = {}
-    var alice = network['alice'] = tick.createPeer('alice')
-    var bob = network['bob'] = tick.createPeer('bob')
-    var charles = network['charles'] = tick.createPeer('charles')
+    const network = {}
+    const alice = network.alice = tick.createPeer('alice')
+    const bob = network.bob = tick.createPeer('bob')
+    const charles = network.charles = tick.createPeer('charles')
 
     alice.init({})
     bob.init({})
     charles.init({})
 
-    alice.append({author: 'alice', sequence: 1, content: {}})
-    alice.append({author: 'alice', sequence: 2, content: {}})
-    alice.append({author: 'alice', sequence: 3, content: {}})
+    alice.append({ author: 'alice', sequence: 1, content: {} })
+    alice.append({ author: 'alice', sequence: 2, content: {} })
+    alice.append({ author: 'alice', sequence: 3, content: {} })
 
     alice.follow('alice')
     bob.follow('alice')
@@ -29,15 +29,15 @@ function createTest (seed, log) {
     alice.connect(bob)
     bob.connect(charles)
 
-    while(tick(network)) ;
+    while (tick(network)) ;
 
-    //should have set up peer.replicatings to tx/rx alice
+    // should have set up peer.replicatings to tx/rx alice
 
     t.deepEqual(bob.store, alice.store, 'alice<->bob')
     t.deepEqual(charles.store, bob.store, 'charles<->bob')
 
     function isComplete (peer) {
-      var prog = progress(peer.state)
+      const prog = progress(peer.state)
       t.equal(prog.current, prog.target)
     }
 
@@ -49,14 +49,7 @@ function createTest (seed, log) {
   })
 }
 
-var seed = process.argv[2]
-if(isNaN(seed))
-  for(var i = 0; i < 100; i++)
-    createTest(i, false)
-else
-  createTest(+seed, true)
-
-
-
-
-
+const seed = process.argv[2]
+if (isNaN(seed)) {
+  for (let i = 0; i < 100; i++) { createTest(i, false) }
+} else { createTest(+seed, true) }
