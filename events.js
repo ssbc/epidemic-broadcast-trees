@@ -11,8 +11,8 @@ module.exports = function (version) {
   }
 
   function isEmpty (o) {
-    for (const k in o) return false
-    return true
+    if (o == null) return true
+    return Object.keys(o).length === 0
   }
 
   function isObject (o) {
@@ -60,9 +60,10 @@ module.exports = function (version) {
       if (peerId !== ignoreId) {
         const peer = state.peers[peerId]
         // BLOCK: check wether id has blocked this peer
-        if ((peer.clock && peer.clock[feedId] || 0) > (state.clock[feedId] || 0) && isShared(state, feedId, peerId)) {
-          return true
-        }
+        if (
+          ((peer.clock && peer.clock[feedId]) || 0) > (state.clock[feedId] || 0) &&
+          isShared(state, feedId, peerId)
+        ) return true
       }
     }
   }
@@ -434,7 +435,7 @@ module.exports = function (version) {
       const ignoreId = want[feedId]
       eachFrom(peerIds, ignoreId, function (peerId) {
         const peer = state.peers[peerId]
-        if (peer.clock && peer.clock[feedId] || state.clock[feedId] < 0 || 0) {
+        if ((peer.clock && peer.clock[feedId]) || state.clock[feedId] < 0 || 0) {
           peer.replicating = peer.replicating || {}
           peer.replicating[feedId] = peer.replicating[feedId] || {
             tx: false, rx: true, sent: -1, requested: state.clock[feedId]
