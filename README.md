@@ -226,11 +226,24 @@ seq << 1 | !rx) } (= * 2 + 1?). The sequence can be extracted using
 `getSequence` and rx/tx using `getReceive` (is even). -1 means do not
 replicate.
 
-When peers connect, the server (that received the request) is expected
-to send their vector clock (notes) first. It should use a local cache
-as the last known status of the client. The notes should only contain
-feeds changed since their last exchange (see "request skipping"). This
-ensures that the vectors clocks sent are as small as possible.
+two peers connect, one is the client (who initiated the connection),
+and the other is the server (that received the request).
+The protocol is mostly the same for clients and servers, but one exception is that
+the server starts by sending their vector clock (notes first).
+
+It's assumed that data changes following a long tail pattern,
+a small number of peers are highly active, but many peers only add data slowly.
+Connections between peers may be short lived, and data may change more slowly than subsequent connections.
+If we sent the whole vector clock on each connection that would add up to a significant overhead.
+_Request Skipping_ is a way to avoid a great deal of bandwidth overhead.
+Each peer remembers the vector clock _sent_ by the other peer.
+And, on a new connection, when they send their vector clock they first check it against the vector clock that the remote peer sent last time.
+If the sequence in the peer's clock is the same as the one in the saved record of the remote peer,
+then that feed is left out of the request (hence the name "request skipping")
+The saved record of the remote peer's vector clock may be different to their actual vector clock,
+but if they have a new sequence for that feed, they will include that feed in their request,
+and the local peer will respond by sending an additional partial vector clock including their sequence for that feed,
+once both sides have exchanged their sequence for a particular feed, replication of messages in that feed may occur.
 
 When connecting to multiple peers, only request new messages using rx
 for a feed from one of the nodes. See `test/multiple.js`.
